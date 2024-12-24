@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Employee Attendance and Wage</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    />
+    <style>
+      /* Basic Reset and Styling */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f5f5f5;
+        padding: 20px;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-size: 16px;
+        border-radius: 5px;
+      }
+
+      .button:hover {
+        background-color: #0056b3;
+      }
+
+      .form-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        font-weight: bold;
+      }
+
+      table.table {
+        margin-top: 20px;
+        border-collapse: collapse;
+        width: 100%;
+        table-layout: auto; /* Ensure table adjusts based on content */
+      }
+
+      table th,
+      table td {
+        padding: 15px;
+        text-align: center;
+        border: 1px solid #ddd;
+        word-wrap: break-word;
+      }
+
+      .table th {
+        background-color: #007bff;
+        color: white;
+      }
+
+      .table td {
+        background-color: #fff;
+      }
+
+      /* Ensure high-wage rows have a distinct background color */
+      /* Ensure high-wage rows have a distinct background color */
+       tr.high-wage td {
+        background-color:red !important; /* Light red color */
+      }
+
+      .loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 24px;
+        color: #333;
+        display: none;
+      }
+
+      .loading.active {
+        display: block;
+      }
+
+      .home-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #17a2b8;
+        color: white;
+        padding: 15px 25px;
+        border: none;
+        border-radius: 50%;
+        font-size: 24px;
+        cursor: pointer;
+      }
+
+      .home-button:hover {
+        background-color: #138496;
+      }
+
+      .back-button {
+        margin-top: 20px;
+      }
+
+      /* Mobile Friendly */
+      /* Mobile-Friendly Adjustments */
+      @media (max-width: 768px) {
+        /* Input fields (wage, workplace, status) */
+        .form-control {
+          font-size: 16px; /* Slightly smaller font size for mobile */
+          padding: 10px; /* Reduce padding for better fit */
+          height: auto; /* Ensure height adjusts dynamically */
+          width: 100%; /* Ensure inputs take full width */
+          text-align: center; /* Align text */
+        }
+
+        /* Table cells for inputs */
+        table td input[type="number"],
+        table td select {
+          font-size: 16px; /* Mobile-friendly font size */
+          padding: 10px; /* Adjust padding for mobile */
+          text-align: center; /* Center the text */
+          height: 45px; /* Slightly reduced height for smaller screens */
+        }
+
+        /* Table container for horizontal scrolling */
+        .table-wrapper {
+          overflow-x: auto; /* Allow horizontal scrolling for wide tables */
+          -webkit-overflow-scrolling: touch; /* Smooth scrolling on mobile */
+        }
+
+        /* Table headers and cells */
+        table.table th,
+        table.table td {
+          font-size: 14px; /* Smaller font size for better fit */
+          padding: 10px; /* Adjust padding */
+          white-space: nowrap; /* Prevent text wrapping by default */
+          overflow: hidden; /* Hide overflowing text */
+          text-overflow: ellipsis; /* Add ellipsis for long text */
+        }
+
+        /* Specific styles for the first column (Employee Name) */
+        table.table td:first-child,
+        table.table th:first-child {
+          white-space: normal !important; /* Allow wrapping of text */
+          word-wrap: break-word; /* Break long names into multiple lines */
+          font-size: 12px; /* Use a smaller font size for better fit */
+          line-height: 1.2; /* Reduce line spacing for compactness */
+          max-width: 150px; /* Restrict the width of the first column */
+          text-align: left; /* Align text to the left for readability */
+        }
+
+        /* Make buttons responsive */
+        .button {
+          font-size: 18px; /* Larger font size for better tap targets */
+          padding: 12px 0; /* Increase vertical padding for tap area */
+          width: 100%; /* Make buttons full-width */
+        }
+
+        /* Adjust table row height */
+        table.table tr {
+          height: auto; /* Allow rows to adjust dynamically */
+        }
+
+        /* Fix for input fields cut off on mobile */
+        input[type="number"],
+        select {
+          width: 100%;
+          padding: 12px;
+          box-sizing: border-box;
+          font-size: 16px;
+        }
+      }
+    </style>
+    <!--
+  This code will translate page contents automatically (without user input)
+  Settings located at line 9, current script will translate english to estonian
+-->
+  </head>
+
+  <body>
+    <div id="google_translate_element"></div>
+    <div class="container">
+      <h1 class="my-4">Employee Attendance and Wage for <%= selectedDate %></h1>
+
+      <!-- Date Picker Form -->
+      <div class="form-container">
+        <form id="dateForm" onsubmit="return false;">
+          <div class="form-group">
+            <label for="date">Select Date:</label>
+            <input
+              type="date"
+              id="date"
+              name="date"
+              value="<%= selectedDate %>"
+              required
+              class="form-control"
+            />
+          </div>
+          <button type="submit" class="button" id="viewEmployeeBtn">
+            View Employee List
+          </button>
+        </form>
+      </div>
+
+      <!-- Employee List Table -->
+      <div class="table-wrapper">
+        <form action="/saveWages" method="POST">
+          <input
+            type="hidden"
+            name="date"
+            id="selectedDate"
+            value="<%= selectedDate %>"
+          />
+          <table class="table table-striped" id="employeeListTable">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Employee Name</th>
+                <th>Attendance Status</th>
+                <th>Daily Wage</th>
+                <th>Workplace</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Employee rows will be dynamically inserted here by JavaScript -->
+            </tbody>
+          </table>
+          <button type="submit" class="btn btn-success">Save Changes</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Loading Animation -->
+    <div id="loading" class="loading">Loading...</div>
+
+    <!-- Home Button -->
+
+    <!-- Load jQuery and Bootstrap -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.0.7/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+      // Prevent the browser's back button
+      history.pushState(null, null, location.href);
+      window.onpopstate = function () {
+        history.go(1); // Forces the browser to move forward in history
+      };
+
+      // Function to go to home screen (custom back button)
+      function goHome() {
+        window.location.href = "/"; // Redirects to the home page
+      }
+
+      // JavaScript to handle the form submission using AJAX and show the employee list
+      document
+        .getElementById("viewEmployeeBtn")
+        .addEventListener("click", function () {
+          const selectedDate = document.getElementById("date").value;
+          const selectedDateInput = document.getElementById("selectedDate");
+
+          // Set the hidden date input value
+          selectedDateInput.value = selectedDate;
+
+          // Show loading spinner
+          showLoading();
+
+          // Send the date to the server using AJAX
+          $.ajax({
+            type: "POST",
+            url: "/updateWages", // Make sure this route handles the request
+            data: { date: selectedDate },
+            success: function (response) {
+              // Assuming the server responds with an updated list of employees
+              const employees = response.employees; // Use the actual response format here
+
+              // Show the employee list table
+              document.getElementById("employeeListTable").style.display =
+                "table";
+
+              // Clear the existing rows
+              const tableBody = document.querySelector(
+                "#employeeListTable tbody"
+              );
+              tableBody.innerHTML = "";
+
+              // Populate the table with new employee data
+              employees.forEach((employee, index) => {
+                const row = document.createElement("tr");
+                row.classList.toggle("high-wage", employee.wage > 999);
+
+                row.innerHTML = `
+            <td>${index + 1}</td> <!-- Add row number -->
+            <td>${employee.name}</td>
+            <td>
+              <select name="status_${
+                employee.employee_id
+              }" class="form-control" id="status_${employee.employee_id}">
+                <option value="Absent" ${
+                  employee.status === "Absent" ? "selected" : ""
+                }>Absent</option>
+                <option value="Present" ${
+                  employee.status === "Present" ? "selected" : ""
+                }>Present</option>
+                <option value="Leave" ${
+                  employee.status === "Leave" ? "selected" : ""
+                }>Leave</option>
+                <option value="Holiday" ${
+                  employee.status === "Holiday" ? "selected" : ""
+                }>Holiday</option>
+              </select>
+            </td>
+            <td>
+              <input type="number" name="wage_${employee.employee_id}" value="${
+                  employee.wage || 0
+                }" class="form-control wage-input" data-employee-id="${
+                  employee.employee_id
+                }" step="0.01" required min="0">
+            </td>
+            <td>
+              <select name="workplace_${
+                employee.employee_id
+              }" class="form-control">
+                <option value="">--Select Workplace--</option>
+                ${response.workplaces
+                  .map(
+                    (workplace) =>
+                      `<option value="${workplace.workplace_id}" ${
+                        employee.workplace_id === workplace.workplace_id
+                          ? "selected"
+                          : ""
+                      }>${workplace.workplace_name}</option>`
+                  )
+                  .join("")}
+              </select>
+            </td>
+          `;
+                tableBody.appendChild(row);
+              });
+
+              // Re-bind wage input change event after dynamically adding rows
+              bindWageInputEvents();
+
+              // Hide loading spinner
+              hideLoading();
+            },
+            error: function (error) {
+              console.log("Error fetching employees:", error);
+              alert("Failed to fetch employee data.");
+              hideLoading();
+            },
+          });
+        });
+
+      // Function to bind wage input events for validation and status update
+      function bindWageInputEvents() {
+        document.querySelectorAll(".wage-input").forEach((input) => {
+          input.addEventListener("input", function () {
+            let wage = this.value === "" ? "" : parseFloat(this.value);
+
+            if (wage !== "" && (isNaN(wage) || wage < 0)) {
+              this.value = 0;
+              wage = 0;
+            }
+
+            const employeeId = this.getAttribute("data-employee-id");
+            const statusSelect = document.getElementById(
+              `status_${employeeId}`
+            );
+            const row = this.closest("tr");
+
+            // Highlight row if wage > 999 (3 digits)
+            if (wage > 999) {
+              row.classList.add("high-wage");
+            } else {
+              row.classList.remove("high-wage");
+            }
+
+            if (wage > 0) {
+              statusSelect.value = "Present";
+            } else {
+              statusSelect.value = "Absent";
+            }
+          });
+        });
+      }
+
+      // Bind the events on initial load for any pre-existing wage inputs
+      bindWageInputEvents();
+
+      // Function to show the loading spinner
+      function showLoading() {
+        document.getElementById("loading").classList.add("active");
+      }
+
+      // Function to hide the loading spinner
+      function hideLoading() {
+        document.getElementById("loading").classList.remove("active");
+      }
+    </script>
+    <script type="text/javascript">
+      function googleTranslateElementInit() {
+        new google.translate.TranslateElement(
+          {
+            pageLanguage: "en", // The page's language (default)
+            includedLanguages: "ar,en", // Languages to be included in the dropdown (Arabic & English)
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE, // Inline layout for a compact dropdown
+            autoDisplay: false, // Prevent automatic display of the translation widget
+          },
+          "google_translate_element"
+        );
+
+        // After the Google Translate Element is initialized, trigger the language change
+        setInterval(function () {
+          var iframe = document.querySelector("iframe.goog-te-menu-frame");
+
+          // Wait until iframe is loaded
+          if (iframe) {
+            var select =
+              iframe.contentWindow.document.querySelector(".goog-te-combo");
+
+            // Check if the select element is available
+            if (select) {
+              select.value = "ar"; // Set the value to Arabic
+              select.dispatchEvent(new Event("change")); // Dispatch the change event to trigger the translation
+            }
+          }
+        }, 500); // Check every 500 milliseconds for the iframe to load and the select element to be available
+      }
+    </script>
+    <script
+      type="text/javascript"
+      src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
+    ></script>
+
+    <script
+      type="text/javascript"
+      src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
+    ></script>
+  </body>
+</html>

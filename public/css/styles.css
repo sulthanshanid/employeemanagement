@@ -1,0 +1,42 @@
+/* public/css/styles.css */
+
+/* Basic styling */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 0;
+}
+
+h1,
+h2 {
+  color: #333;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+ul li {
+  padding: 10px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  margin: 5px 0;
+}
+
+/* Add a class for the sidebar if needed */
+.sidebar {
+  width: 250px;
+  position: fixed;
+  top: 0;
+  left: -250px;
+  height: 100%;
+  background-color: #333;
+  color: white;
+  overflow-y: auto;
+  transition: 0.3s;
+  padding-top: 20px;
+}
+
+/* More styling as required */

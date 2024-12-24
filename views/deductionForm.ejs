@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deduction Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 20px;
+    }
+    form {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 10px;
+    }
+    select, input, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+    }
+    button {
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .deductions-table {
+      margin-top: 30px;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .deductions-table th, .deductions-table td {
+      padding: 10px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <h1>Record Deduction</h1>
+
+  <form action="/deduction" method="POST">
+    <!-- Employee Dropdown -->
+    <label for="employee_id">Select Employee:</label>
+    <select name="employee_id" id="employee_id" required>
+      <option value="" disabled selected>Select an employee</option>
+      <% employees.forEach((employee) => { %>
+        <option value="<%= employee.employee_id %>" <% if(employee.employee_id == selectedEmployeeId) { %>selected<% } %>><%= employee.name %></option>
+      <% }) %>
+    </select>
+    <br><br>
+
+    <!-- Date Input -->
+    <label for="date">Select Date:</label>
+    <input type="date" name="date" id="date" required>
+    <br><br>
+
+    <!-- Deduction Amount -->
+    <label for="amount">Deduction Amount:</label>
+    <input type="number" name="amount" id="amount" step="0.01" required>
+    <br><br>
+
+    <!-- Remarks Input -->
+    <label for="remarks">Remarks:</label>
+    <textarea name="remarks" id="remarks" rows="3" placeholder="Enter remarks (optional)"></textarea>
+    <br><br>
+
+    <!-- Submit Button -->
+    <button type="submit">Submit Deduction</button>
+  </form>
+
+  <!-- Existing Deductions -->
+  <% if (selectedEmployeeId) { %>
+    <% if (deductions.length > 0) { %>
+      <h2>Existing Deductions for <%= employees.find(emp => emp.employee_id == selectedEmployeeId).name %></h2>
+      <table class="deductions-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Amount</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% deductions.forEach(deduction => { %>
+            <tr>
+              <td><%= deduction.date %></td>
+              <td><%= deduction.amount %></td>
+              <td><%= deduction.remark %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } else { %>
+      <p>No deductions for this employee yet.</p>
+    <% } %>
+  <% } else { %>
+    <p>Please select an employee to view and enter deductions.</p>
+  <% } %>
+
+</body>
+</html>

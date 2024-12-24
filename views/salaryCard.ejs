@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Salary Card</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Add jsPDF AutoTable Plugin -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.21/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+      /* Basic Styling */
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f5f5f5;
+        padding: 20px;
+      }
+
+      h1,
+      h2 {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .card-body {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+
+      .table th,
+      .table td {
+        text-align: center;
+      }
+
+      /* Buttons */
+      .download-btn {
+        margin: 10px;
+        font-size: 16px;
+        background-color: #007bff;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      .download-btn:hover {
+        background-color: #0056b3;
+      }
+
+      .download-btn:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+      }
+
+      /* Home Button Styling */
+      .home-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #17a2b8;
+        color: white;
+        padding: 15px 25px;
+        border: none;
+        border-radius: 50%;
+        font-size: 24px;
+        cursor: pointer;
+      }
+
+      .home-button:hover {
+        background-color: #138496;
+      }
+
+      .home-button img {
+        width: 30px;
+        height: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Salary Card</h1>
+
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Employee ID: <%= employee_id %></h5>
+          <h5 class="card-title">Employee Name: <%= name %></h5>
+          <p class="card-text">
+            Month: <%= new Date(0, month - 1).toLocaleString('en', { month:
+            'long' }) %>
+          </p>
+          <p class="card-text">Year: <%= year %></p>
+          <p class="card-text">
+            Total Salary (before deductions): <%= totalSalary.toFixed(2) %>
+          </p>
+          <p class="card-text">Loan Deductions: <%= totalLoans.toFixed(2) %></p>
+          <p class="card-text">
+            Deduction Amounts: <%= totalDeductions.toFixed(2) %>
+          </p>
+          <p class="card-text">
+            <strong>Net Salary: <%= netSalary.toFixed(2) %></strong>
+          </p>
+          <p class="card-text">Overtime Days: <%= overtimeDays %></p>
+          <p class="card-text">Absent Days: <%= absentDays %></p>
+        </div>
+      </div>
+
+      <!-- Detailed Attendance Section -->
+      <h2>Detailed Attendance</h2>
+      <table class="table table-striped" id="attendanceTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Basic Wage</th>
+            <th>Overtime</th>
+            <th>Total Daily Wage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% detailedAttendance.forEach(record => { %>
+          <tr>
+            <td><%= new Date(record.date).toLocaleDateString() %></td>
+            <td><%= record.status %></td>
+            <td>
+              <%= record.status === 'Absent' ? '0.00' : basic_wage.toFixed(2) %>
+            </td>
+            <td>
+              <%= record.status === 'Absent' ? '0.00' :
+              record.overtime.toFixed(2) %>
+            </td>
+            <td>
+              <%= record.status === 'Absent' ? '0.00' : (basic_wage +
+              record.overtime).toFixed(2) %>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+
+      <!-- Download Buttons -->
+      <div class="text-center">
+        <button class="download-btn" id="downloadPDF">Download PDF</button>
+        <button class="download-btn" id="downloadCSV">Download CSV</button>
+      </div>
+    </div>
+
+    <!-- Home Button -->
+    <button class="home-button" onclick="window.location.href='/ramin'">
+      <img src="https://img.icons8.com/ios/452/home.png" alt="Home Icon" />
+    </button>
+
+    <script>
+      // PDF Download Functionality
+      document
+        .getElementById("downloadPDF")
+        .addEventListener("click", function () {
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+
+          // Salary Card Section (Page 1)
+          doc.text("Salary Card", 20, 20);
+          doc.text(`Employee ID: <%= employee_id %>`, 20, 30);
+          doc.text(`Employee Name: <%= name %>`, 20, 40); // Use employee_name here
+
+          // Adjusting the line spacing for Month and Year
+          doc.text(
+            `Month: <%= new Date(year, month - 1).toLocaleString('en', { month: 'long' }) %>`,
+            20,
+            50
+          );
+          doc.text(`Year: <%= year %>`, 20, 60);
+          doc.text(`Total Salary:  <%= totalSalary.toFixed(2) %>`, 20, 70);
+          doc.text(`Loan Deductions:  <%= totalLoans.toFixed(2) %>`, 20, 80);
+          doc.text(`Net Salary:  <%= netSalary.toFixed(2) %>`, 20, 90);
+
+          // Create a new page for Attendance Table
+          doc.addPage();
+          doc.text("Detailed Attendance", 20, 20);
+
+          // Add attendance table to PDF (Page 2)
+          doc.autoTable({ html: "#attendanceTable", startY: 30 });
+
+          // Save the PDF
+          doc.save(`<%= name %>-salarycard.pdf`);
+        });
+
+      // CSV Download Functionality
+      document
+        .getElementById("downloadCSV")
+        .addEventListener("click", function () {
+          // Get table data and parse it into CSV format
+          const table = document.getElementById("attendanceTable");
+          const rows = Array.from(table.rows);
+          const tableData = rows.slice(1).map((row) => {
+            return Array.from(row.cells).map((cell) => cell.innerText);
+          });
+
+          // Convert to CSV format using PapaParse
+          const csv = Papa.unparse(tableData);
+
+          // Create a Blob and trigger download
+          const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+          const link = document.createElement("a");
+          if (link.download !== undefined) {
+            // Browsers that support download attribute
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "attendance-details.csv");
+            link.click();
+          }
+        });
+    </script>
+  </body>
+</html>

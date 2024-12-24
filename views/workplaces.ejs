@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Workplaces</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f8f9fa;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      ul {
+        list-style-type: none;
+        padding: 0;
+      }
+
+      li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 10px 0;
+        padding: 10px;
+        background-color: #ffffff;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      button {
+        padding: 5px 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      #edit-workplace-form {
+        display: none;
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      /* Modal Styles */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+        padding-top: 60px;
+      }
+
+      .modal-content {
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 400px;
+        border-radius: 5px;
+      }
+
+      .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+      }
+
+      .close:hover,
+      .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Workplaces</h1>
+
+      <!-- Display all workplaces -->
+      <ul>
+        <% workplaces.forEach(workplace => { %>
+        <li>
+          <%= workplace.workplace_name %>
+          <button onclick="editWorkplace(<%= workplace.workplace_id %>)">
+            Edit
+          </button>
+        </li>
+        <% }); %>
+      </ul>
+
+      <!-- Add New Workplace Button -->
+      <h3>Add New Workplace</h3>
+      <form action="/add-workplace" method="POST">
+        <input
+          type="text"
+          name="workplaceName"
+          placeholder="Workplace Name"
+          required
+        />
+        <button type="submit">Add Workplace</button>
+      </form>
+
+      <!-- Loading Spinner -->
+      <div class="loading" id="loading">
+        <p>Loading...</p>
+      </div>
+
+      <!-- Modal: Edit Workplace -->
+      <div id="workplaceModal" class="modal">
+        <div class="modal-content">
+          <span class="close" onclick="closeModal()">&times;</span>
+          <h3 id="modalTitle">Edit Workplace</h3>
+          <form id="workplaceForm" action="/update-workplace" method="POST">
+            <input type="hidden" name="_method" value="PUT" />
+            <input
+              type="text"
+              name="workplaceName"
+              id="workplaceName"
+              required
+            />
+            <button type="submit" id="submitButton">Save Changes</button>
+            <button type="button" onclick="closeModal()">Cancel</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Back Button -->
+      <a href="/ramin" class="btn btn-secondary">Back</a>
+    </div>
+
+    <script>
+      // Edit Workplace Function
+      function editWorkplace(workplaceId) {
+        // Show loading icon
+        document.getElementById("loading").style.display = "block";
+
+        // Fetch workplace data by ID from server
+        fetch(`/get-workplace/${workplaceId}`)
+          .then((response) => response.json())
+          .then((workplace) => {
+            // Hide loading icon
+            document.getElementById("loading").style.display = "none";
+
+            // Fill the form with the fetched data
+            document.getElementById("workplaceName").value =
+              workplace.workplace_name;
+            document.getElementById(
+              "workplaceForm"
+            ).action = `/update-workplace/${workplaceId}`;
+            document.getElementById("modalTitle").textContent =
+              "Edit Workplace";
+
+            // Show the modal
+            document.getElementById("workplaceModal").style.display = "block";
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            document.getElementById("loading").style.display = "none";
+          });
+      }
+
+      // Close Modal Function
+      function closeModal() {
+        document.getElementById("workplaceModal").style.display = "none";
+      }
+    </script>
+  </body>
+</html>

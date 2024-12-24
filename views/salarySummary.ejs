@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Salary Summary</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.21/jspdf.plugin.autotable.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="my-4">
+        Salary Summary for <%= new Date(0, month - 1).toLocaleString('en', {
+        month: 'long' }) %> <%= year %>
+      </h1>
+
+      <table class="table table-striped" id="salaryTable">
+        <thead>
+          <tr>
+            <th>Employee ID</th>
+            <th>Name</th>
+            <th>Total Salary</th>
+            <th>Loan Deductions</th>
+            <th>Deductions</th>
+            <th>Final Salary</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% summary.forEach(record => { %>
+          <tr>
+            <td><%= record.employee_id %></td>
+            <td><%= record.name %></td>
+            <td>₹<%= record.totalSalary.toFixed(2) %></td>
+            <td>₹<%= record.totalLoans.toFixed(2) %></td>
+            <td>₹<%= record.totalDeductions.toFixed(2) %></td>
+            <td>₹<%= record.finalSalary.toFixed(2) %></td>
+          </tr>
+          <% }); %>
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="2">Totals</th>
+            <th id="totalSalary">0.00</th>
+            <th id="totalLoan">0.00</th>
+            <th id="totalDeductions">0.00</th>
+            <th id="finalSalary">0.00</th>
+          </tr>
+        </tfoot>
+      </table>
+
+      <!-- Download Buttons -->
+      <button id="downloadCsv" class="btn btn-success mt-3">
+        Download as CSV
+      </button>
+      <button id="downloadPdf" class="btn btn-primary mt-3">
+        Download as PDF
+      </button>
+
+      <a href="/generate-summary" class="btn btn-secondary mt-3">Back</a>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const rows = document.querySelectorAll("#salaryTable tbody tr");
+        let totalSalary = 0;
+        let totalLoan = 0;
+        let totalDeductions = 0;
+        let netSalary = 0;
+
+        // Loop through each row to calculate totals
+        rows.forEach((row) => {
+          const salary =
+            parseFloat(row.cells[2].textContent.replace("₹", "").trim()) || 0;
+          const loan =
+            parseFloat(row.cells[3].textContent.replace("₹", "").trim()) || 0;
+          const deductions =
+            parseFloat(row.cells[4].textContent.replace("₹", "").trim()) || 0;
+
+          totalSalary += salary;
+          totalLoan += loan;
+          totalDeductions += deductions;
+          netSalary += salary - loan - deductions;
+        });
+
+        // Update the footer with calculated totals
+        document.getElementById(
+          "totalSalary"
+        ).textContent = `₹${totalSalary.toFixed(2)}`;
+        document.getElementById(
+          "totalLoan"
+        ).textContent = `₹${totalLoan.toFixed(2)}`;
+        document.getElementById(
+          "totalDeductions"
+        ).textContent = `₹${totalDeductions.toFixed(2)}`;
+        document.getElementById(
+          "finalSalary"
+        ).textContent = `₹${netSalary.toFixed(2)}`;
+      });
+
+      // CSV Download Functionality
+      document
+        .getElementById("downloadCsv")
+        .addEventListener("click", function () {
+          const table = document.querySelector("table");
+          let csv = [];
+
+          // Loop through each row of the table
+          Array.from(table.rows).forEach((row) => {
+            let rowData = [];
+            Array.from(row.cells).forEach((cell) => {
+              rowData.push(cell.textContent.trim()); // Get text content of each cell
+            });
+            csv.push(rowData.join(",")); // Join cells with a comma
+          });
+
+          // Convert the array to a single CSV string
+          let csvContent = csv.join("\n");
+
+          // Create a downloadable blob
+          const blob = new Blob([csvContent], { type: "text/csv" });
+          const url = URL.createObjectURL(blob);
+
+          // Create a temporary download link
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "Salary_Summary.csv";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        });
+
+      // PDF Download Functionality
+      document
+        .getElementById("downloadPdf")
+        .addEventListener("click", function () {
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+
+          // Add title and summary information
+          doc.text("Salary Summary", 20, 20);
+          doc.text(
+            `Month: <%= new Date(0, month - 1).toLocaleString('en', { month: 'long' }) %>`,
+            20,
+            30
+          );
+          doc.text(`Year: <%= year %>`, 20, 40);
+
+          // Add Salary Details Table
+          doc.autoTable({
+            head: [
+              ["Employee ID", "Name", "Total Salary", "Loan Deductions", "Deductions", "Final Salary"],
+            ],
+            body: [
+              <% summary.forEach((record) => { %>
+              [
+                "<%= record.employee_id %>",
+                "<%= record.name %>",
+                "₹<%= record.totalSalary.toFixed(2) %>",
+                "₹<%= record.totalLoans.toFixed(2) %>",
+                "₹<%= record.totalDeductions.toFixed(2) %>",
+                "₹<%= record.finalSalary.toFixed(2) %>"
+              ],
+              <% }); %>
+            ],
+            startY: 50,  // Position the table below the title
+          });
+
+          // Save the PDF
+          doc.save("Salary_Summary.pdf");
+        });
+    </script>
+  </body>
+</html>

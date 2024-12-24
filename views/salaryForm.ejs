@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Generate Salary Card</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="my-4">Generate Salary Card</h1>
+      <form action="/generate-salary" method="POST">
+        <div class="form-group">
+          <label for="employee">Select Employee:</label>
+          <select
+            name="employee_id"
+            id="employee"
+            class="form-control"
+            required
+          >
+            <option value="">--Select Employee--</option>
+            <% employees.forEach(employee => { %>
+            <option value="<%= employee.employee_id %>">
+              <%= employee.name %> <%= employee.last_name %>
+            </option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="month">Select Month:</label>
+          <select name="month" id="month" class="form-control" required>
+            <option value="">--Select Month--</option>
+            <% for (let i = 1; i <= 12; i++) { %>
+            <option value="<%= i %>">
+              <%= new Date(0, i - 1).toLocaleString('en', { month: 'long' }) %>
+            </option>
+            <% } %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="year">Select Year:</label>
+          <input
+            type="number"
+            name="year"
+            id="year"
+            class="form-control"
+            value="<%= new Date().getFullYear() %>"
+            min="2000"
+            max="<%= new Date().getFullYear() %>"
+            required
+          />
+        </div>
+        <button type="submit" class="btn btn-primary">Generate Salary</button>
+      </form>
+    </div>
+  </body>
+</html>
