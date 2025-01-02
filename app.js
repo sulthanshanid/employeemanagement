@@ -1,6 +1,6 @@
 const express = require("express");
 const path = require("path");
-const mysql = require("mysql");
+const mysql = require("mysql2");
 const bodyParser = require("body-parser");
 
 const app = express();
