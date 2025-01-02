@@ -613,7 +613,7 @@ app.post("/generate-summary", (req, res) => {
 
             const totalSalary = salaryResults[0]?.total_salary || 0;
 
-            // Loan calculation query
+            //l Loan calculation query
             db.query(
               `SELECT SUM(loan_amount) AS total_loans
               FROM loans
