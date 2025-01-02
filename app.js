@@ -35,12 +35,12 @@ app.set("views", path.join(__dirname, "views"));
 
 // Dashboard route to fetch employees and workplaces and render the page
 app.get("/dashboard", (req, res) => {
-  const getEmployeesQuery = "SELECT * FROM Employees";
-  const getWorkplacesQuery = "SELECT * FROM Workplaces";
+  const getEmployeesQuery = "SELECT * FROM employees";
+  const getWorkplacesQuery = "SELECT * FROM workplaces";
 
   db.query(getEmployeesQuery, (err, employees) => {
     if (err) {
-      return res.status(500).send("Error fetching employees.");
+      return res.status(500).send(err);
     }
     db.query(getWorkplacesQuery, (err, workplaces) => {
       if (err) {
@@ -58,7 +58,7 @@ app.post("/update-employee/:id", (req, res) => {
 
   // Make sure to use the correct column name for employee ID
   const updateEmployeeQuery =
-    "UPDATE Employees SET name = ?, designation = ? ,basic_wage=? WHERE employee_id = ?";
+    "UPDATE employees SET name = ?, designation = ? ,basic_wage=? WHERE employee_id = ?";
 
   db.query(
     updateEmployeeQuery,
@@ -76,7 +76,7 @@ app.post("/update-employee/:id", (req, res) => {
 app.post("/add-employee", (req, res) => {
   const { name, designation, basic_wage } = req.body;
   const addEmployeeQuery =
-    "INSERT INTO Employees (name, designation,basic_wage ) VALUES (?, ?,?)";
+    "INSERT INTO employees (name, designation,basic_wage ) VALUES (?, ?,?)";
 
   db.query(addEmployeeQuery, [name, designation, basic_wage], (err) => {
     if (err) {
@@ -92,7 +92,7 @@ app.get("/get-employee/:id", (req, res) => {
 
   // Query for specific employee
   db.query(
-    "SELECT * FROM Employees WHERE employee_id = ?",
+    "SELECT * FROM employees WHERE employee_id = ?",
     [employeeId],
     (err, result) => {
       if (err) {
@@ -110,7 +110,7 @@ app.get("/get-employee/:id", (req, res) => {
   );
 });
 app.get("/workplaces", (req, res) => {
-  const getWorkplacesQuery = "SELECT * FROM Workplaces";
+  const getWorkplacesQuery = "SELECT * FROM workplaces";
   db.query(getWorkplacesQuery, (err, workplaces) => {
     if (err) {
       return res.status(500).send("Error fetching workplaces.");
@@ -124,7 +124,7 @@ app.post("/add-workplace", (req, res) => {
   console.log("Request Body:", req.body); // Debug log the body
   const { workplaceName } = req.body;
   const addWorkplaceQuery =
-    "INSERT INTO Workplaces (workplace_name) VALUES (?)";
+    "INSERT INTO workplaces (workplace_name) VALUES (?)";
 
   db.query(addWorkplaceQuery, [workplaceName], (err) => {
     if (err) {
@@ -139,7 +139,7 @@ app.post("/update-workplace/:id", (req, res) => {
   const workplaceId = req.params.id;
   const { workplaceName } = req.body;
   const updateWorkplaceQuery =
-    "UPDATE Workplaces SET workplace_name = ? WHERE workplace_id = ?";
+    "UPDATE workplaces SET workplace_name = ? WHERE workplace_id = ?";
 
   db.query(updateWorkplaceQuery, [workplaceName, workplaceId], (err) => {
     if (err) {
@@ -159,7 +159,7 @@ app.get("/get-workplace/:id", (req, res) => {
   const workplaceId = req.params.id;
 
   db.query(
-    "SELECT * FROM Workplaces WHERE workplace_id = ?",
+    "SELECT * FROM workplaces WHERE workplace_id = ?",
     [workplaceId],
     (err, result) => {
       if (err) {
@@ -182,12 +182,12 @@ app.get("/attendance", (req, res) => {
   // Query to fetch all employees with their workplace and attendance status for the selected date
   const getEmployeesQuery = `
       SELECT e.employee_id, e.name, a.status, a.wage 
-      FROM Employees e
-      LEFT JOIN Attendance a ON e.employee_id = a.employee_id AND a.date = ?
+      FROM employees e
+      LEFT JOIN attendance a ON e.employee_id = a.employee_id AND a.date = ?
     `;
 
   // Query to fetch all workplaces
-  const getWorkplacesQuery = "SELECT * FROM Workplaces";
+  const getWorkplacesQuery = "SELECT * FROM workplaces";
 
   // Fetch the employees and workplaces
   db.query(getEmployeesQuery, [date], (err, employees) => {
@@ -217,10 +217,10 @@ app.post("/updateWages", (req, res) => {
   // Fetch employees and workplaces for the selected date
   const getEmployeesQuery = `
         SELECT e.employee_id, e.name, a.status, a.wage,a.workplace_id
-        FROM Employees e
-        LEFT JOIN Attendance a ON e.employee_id = a.employee_id AND a.date = ?
+        FROM employees e
+        LEFT JOIN attendance a ON e.employee_id = a.employee_id AND a.date = ?
     `;
-  const getWorkplacesQuery = "SELECT * FROM Workplaces";
+  const getWorkplacesQuery = "SELECT * FROM workplaces";
 
   // Fetch employee data
   db.query(getEmployeesQuery, [date], (err, employees) => {
@@ -269,7 +269,7 @@ app.post("/saveWages", (req, res) => {
 
       // Prepare the query
       const query = `
-        INSERT INTO Attendance (employee_id, date, status, wage, workplace_id)
+        INSERT INTO attendance (employee_id, date, status, wage, workplace_id)
         VALUES (?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE wage = ?, status = ?, workplace_id = ?
       `;
@@ -315,14 +315,14 @@ app.post("/saveWages", (req, res) => {
 
 app.get("/loan", (req, res) => {
   // Fetch employees for the dropdown list and loans to display in the table
-  db.query("SELECT employee_id, name FROM Employees", (err, employees) => {
+  db.query("SELECT employee_id, name FROM employees", (err, employees) => {
     if (err) {
       return res.status(500).send("Error fetching employees.");
     }
 
     // Fetch all loans from the database
     db.query(
-      "SELECT loans.loan_id, Employees.name, loans.loan_amount, loans.loan_date FROM loans INNER JOIN Employees ON loans.employee_id = Employees.employee_id",
+      "SELECT loans.loan_id, employees.name, loans.loan_amount, loans.loan_date FROM loans INNER JOIN employees ON loans.employee_id = employees.employee_id",
       (err, loans) => {
         if (err) {
           return res.status(500).send("Error fetching loans.");
@@ -351,7 +351,7 @@ app.post("/loan", (req, res) => {
 });
 
 app.get("/generate-salary", (req, res) => {
-  db.query("SELECT employee_id, name FROM Employees", (err, employees) => {
+  db.query("SELECT employee_id, name FROM employees", (err, employees) => {
     if (err) {
       return res.status(500).send("Error fetching employees.");
     }
@@ -723,7 +723,7 @@ app.get("/ramin", (req, res) => {
 });
 // GET Route: Display deduction form
 app.get("/deduction", (req, res) => {
-  const getEmployeesQuery = "SELECT employee_id, name FROM Employees";
+  const getEmployeesQuery = "SELECT employee_id, name FROM employees";
 
   db.query(getEmployeesQuery, (err, employees) => {
     if (err) {
@@ -769,7 +769,7 @@ app.post("/deduction", (req, res) => {
       }
 
       // Re-render the page with the updated deductions
-      const getEmployeesQuery = "SELECT employee_id, name FROM Employees";
+      const getEmployeesQuery = "SELECT employee_id, name FROM employees";
       db.query(getEmployeesQuery, (err, employees) => {
         if (err) {
           console.error("Error fetching employees:", err);
