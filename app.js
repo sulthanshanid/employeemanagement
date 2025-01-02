@@ -8,10 +8,10 @@ const PORT = 3000;
 
 // MySQL database connection
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "root", // Replace with your actual password
-  database: "rami", // Replace with your actual database name
+  host: "sql.freedb.tech",
+  user: "freedb_auction_db",
+  password: "2jqrB$K#8Q46xyB", // Replace with your actual password
+  database: "freedb_auction_db", // Replace with your actual database name
 });
 
 db.connect((err) => {
