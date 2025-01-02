@@ -369,24 +369,25 @@ app.post("/generate-salary", (req, res) => {
     FROM employees
     WHERE employee_id = ?`;
 
-  // Query for detailed attendance
+  // Query for detailed attendance, including workplace ID
   const attendanceQuery = `
-    SELECT date, wage, status
-    FROM attendance
-    WHERE employee_id = ? AND MONTH(date) = ? AND YEAR(date) = ?`;
+    SELECT a.date, a.wage, a.status, a.workplace_id
+    FROM attendance a
+    WHERE a.employee_id = ? AND MONTH(a.date) = ? AND YEAR(a.date) = ?`;
 
   // Query for total salary calculation
   const salaryQuery = `
-    SELECT SUM(wage) AS total_salary
-    FROM attendance
-    WHERE employee_id = ? AND status = 'Present'
-    AND MONTH(date) = ? AND YEAR(date) = ?`;
+    SELECT SUM(a.wage) AS total_salary
+    FROM attendance a
+    WHERE a.employee_id = ? AND a.status = 'Present'
+    AND MONTH(a.date) = ? AND YEAR(a.date) = ?`;
+
   // Query for counting absent days
   const absentDaysQuery = `
-  SELECT COUNT(*) AS absent_days
-  FROM attendance
-  WHERE employee_id = ? AND status = 'Absent'
-  AND MONTH(date) = ? AND YEAR(date) = ?`;
+    SELECT COUNT(*) AS absent_days
+    FROM attendance a
+    WHERE a.employee_id = ? AND a.status = 'Absent'
+    AND MONTH(a.date) = ? AND YEAR(a.date) = ?`;
 
   // Query for loan details
   const loanQuery = `
@@ -403,9 +404,15 @@ app.post("/generate-salary", (req, res) => {
   // Query for overtime days
   const overtimeDaysQuery = `
     SELECT COUNT(*) AS overtime_days
-    FROM attendance
-    WHERE employee_id = ? AND wage > (SELECT basic_wage FROM employees WHERE employee_id = ?)
-    AND MONTH(date) = ? AND YEAR(date) = ?`;
+    FROM attendance a
+    WHERE a.employee_id = ? AND a.wage > (SELECT basic_wage FROM employees WHERE employee_id = ?)
+    AND MONTH(a.date) = ? AND YEAR(a.date) = ?`;
+
+  // Query for workplace names
+  const workplaceQuery = `
+    SELECT workplace_name
+    FROM workplaces
+    WHERE workplace_id = ?`;
 
   // Get employee name and basic wage
   db.query(employeeQuery, [employee_id], (err, result) => {
@@ -415,7 +422,7 @@ app.post("/generate-salary", (req, res) => {
     const { name, basic_wage } = result[0];
     const dailyWage = basic_wage;
 
-    // Get attendance details
+    // Get attendance details, including workplace ID
     db.query(attendanceQuery, [employee_id, month, year], (err, attendance) => {
       if (err) return res.status(500).send("Error fetching attendance.");
 
@@ -427,6 +434,8 @@ app.post("/generate-salary", (req, res) => {
           overtime,
         };
       });
+
+      // Get absent days count
       db.query(
         absentDaysQuery,
         [employee_id, month, year],
@@ -434,6 +443,7 @@ app.post("/generate-salary", (req, res) => {
           if (err) return res.status(500).send("Error counting absent days.");
 
           const absentDays = absentResult[0].absent_days || 0;
+
           // Calculate total salary
           db.query(
             salaryQuery,
@@ -478,23 +488,65 @@ app.post("/generate-salary", (req, res) => {
                           totalSalary - totalLoans - totalDeductions;
                         const overtimeDays = overtimeResult[0].overtime_days;
 
-                        // Render the salary card with all data, including employee name
-                        res.render("salaryCard", {
-                          employee_id,
-                          name,
-                          month,
-                          year,
-                          detailedAttendance,
-                          totalSalary,
-                          loans,
-                          totalLoans,
-                          deductions,
-                          totalDeductions,
-                          netSalary,
-                          overtimeDays,
-                          absentDays, // Add absent days here
-                          basic_wage,
+                        // Create a table to show workplace attendance count
+                        const workplaceAttendance = {};
+                        attendance.forEach((record) => {
+                          const workplaceId = record.workplace_id;
+                          if (!workplaceAttendance[workplaceId]) {
+                            workplaceAttendance[workplaceId] = 0;
+                          }
+                          workplaceAttendance[workplaceId]++;
                         });
+
+                        // Fetch workplace names based on workplace IDs
+                        const workplaceNames = [];
+                        const workplacePromises = Object.keys(
+                          workplaceAttendance
+                        ).map((workplaceId) => {
+                          return new Promise((resolve, reject) => {
+                            db.query(
+                              workplaceQuery,
+                              [workplaceId],
+                              (err, workplaceResult) => {
+                                if (err) return reject(err);
+                                workplaceNames.push({
+                                  workplaceId,
+                                  name: workplaceResult[0]?.workplace_name || "Unknown",
+                                });
+                                resolve();
+                              }
+                            );
+                          });
+                        });
+
+                        // Wait for all workplace names to be fetched
+                        Promise.all(workplacePromises)
+                          .then(() => {
+                            // Render the salary card with all data, including employee name and workplace attendance
+                            res.render("salaryCard", {
+                              employee_id,
+                              name,
+                              month,
+                              year,
+                              detailedAttendance,
+                              totalSalary,
+                              loans,
+                              totalLoans,
+                              deductions,
+                              totalDeductions,
+                              netSalary,
+                              overtimeDays,
+                              absentDays,
+                              basic_wage,
+                              workplaceAttendance,
+                              workplaceNames,
+                            });
+                          })
+                          .catch((err) => {
+                            return res
+                              .status(500)
+                              .send(err);
+                          });
                       }
                     );
                   }
@@ -509,133 +561,162 @@ app.post("/generate-salary", (req, res) => {
 });
 
 app.post("/generate-summary", (req, res) => {
-  const { month, year } = req.body;
+  const { month, year, workplace } = req.body;
 
-  // Query to get all employees with their basic wages
-  const employeesQuery = `SELECT employee_id, name, basic_wage FROM employees`;
+  // Query to get all workplaces
+  const workplacesQuery = `SELECT workplace_id, workplace_name FROM workplaces`;
+  let employeesQuery = "";
 
-  // Query to fetch total salary calculation
-  const salaryQuery = `
-    SELECT SUM(wage) AS total_salary
-    FROM attendance
-    WHERE employee_id = ? AND MONTH(date) = ? AND YEAR(date) = ? AND status = 'Present'`;
+  if (workplace === "") {
+    // Query to get all employees and their basic wages, no workplace filter
+    employeesQuery = `
+      SELECT employees.employee_id, employees.name, employees.basic_wage
+      FROM employees
+    `;
+  } else {
+    // Query to get all employees with their basic wages, filtered by workplace_id
+    employeesQuery = `
+       SELECT employees.employee_id, employees.name, basic_wage
+    FROM employees,attendance
+    WHERE employees.employee_id=attendance.employee_id and attendance.workplace_id = ? 
+    `;
+  }
 
-  // Query to fetch loan details
-  const loanQuery = `
-    SELECT SUM(loan_amount) AS total_loans
-    FROM loans
-    WHERE employee_id = ? AND MONTH(loan_date) = ? AND YEAR(loan_date) = ?`;
+  // Fetch workplaces
+  db.query(workplacesQuery, (err, workplaces) => {
+    if (err) return res.status(500).send(err);
 
-  // Query to fetch deduction details
-  const deductionQuery = `
-    SELECT SUM(amount) AS total_deductions
-    FROM deduction
-    WHERE employee_id = ? AND MONTH(date) = ? AND YEAR(date) = ?`;
+    // Add an 'All Workplaces' option (value is null, representing no filter)
+    workplaces.unshift({ id: null, name: "All Workplaces" });
 
-  // Query to fetch attendance details
-  const attendanceQuery = `
-    SELECT date, status, wage
-    FROM attendance
-    WHERE employee_id = ? AND MONTH(date) = ? AND YEAR(date) = ?`;
+    // Now query the employees, filtered by the selected workplace_id
+    db.query(employeesQuery, [workplace, workplace], (err, employees) => {
+      if (err) return res.status(500).send(err);
 
-  db.query(employeesQuery, (err, employees) => {
-    if (err) return res.status(500).send("Error fetching employee list.");
+      if (employees.length === 0)
+        return res.status(404).send("No employees found.");
 
-    if (employees.length === 0)
-      return res.status(404).send("No employees found.");
+      const summary = [];
+      let processed = 0;
 
-    const summary = [];
-    let processed = 0;
+      employees.forEach((employee) => {
+        const { employee_id, name, basic_wage } = employee;
 
-    employees.forEach((employee) => {
-      const { employee_id, name, basic_wage } = employee;
+        // Salary calculation query
+        db.query(
+          `SELECT SUM(wage) AS total_salary
+          FROM attendance
+          WHERE employee_id = ? AND MONTH(date) = ? AND YEAR(date) = ? AND status = 'Present'`,
+          [employee_id, month, year],
+          (err, salaryResults) => {
+            if (err) return res.status(500).send("Error calculating salaries.");
 
-      db.query(
-        salaryQuery,
-        [employee_id, month, year],
-        (err, salaryResults) => {
-          if (err) return res.status(500).send("Error calculating salaries.");
+            const totalSalary = salaryResults[0]?.total_salary || 0;
 
-          const totalSalary = salaryResults[0]?.total_salary || 0;
+            // Loan calculation query
+            db.query(
+              `SELECT SUM(loan_amount) AS total_loans
+              FROM loans
+              WHERE employee_id = ? AND MONTH(loan_date) = ? AND YEAR(loan_date) = ?`,
+              [employee_id, month, year],
+              (err, loanResults) => {
+                if (err)
+                  return res.status(500).send("Error calculating loans.");
 
-          db.query(
-            loanQuery,
-            [employee_id, month, year],
-            (err, loanResults) => {
-              if (err) return res.status(500).send("Error calculating loans.");
+                const totalLoans = loanResults[0]?.total_loans || 0;
 
-              const totalLoans = loanResults[0]?.total_loans || 0;
+                // Deduction calculation query
+                db.query(
+                  `SELECT SUM(amount) AS total_deductions
+                  FROM deduction
+                  WHERE employee_id = ? AND MONTH(date) = ? AND YEAR(date) = ?`,
+                  [employee_id, month, year],
+                  (err, deductionResults) => {
+                    if (err)
+                      return res
+                        .status(500)
+                        .send("Error calculating deductions.");
 
-              db.query(
-                deductionQuery,
-                [employee_id, month, year],
-                (err, deductionResults) => {
-                  if (err)
-                    return res
-                      .status(500)
-                      .send("Error calculating deductions.");
+                    const totalDeductions =
+                      deductionResults[0]?.total_deductions || 0;
+                    const finalSalary =
+                      totalSalary - totalLoans - totalDeductions;
 
-                  const totalDeductions =
-                    deductionResults[0]?.total_deductions || 0;
-                  const finalSalary =
-                    totalSalary - totalLoans - totalDeductions;
+                    // Attendance details query
+                    db.query(
+                      `SELECT date, status, wage
+                      FROM attendance
+                      WHERE employee_id = ? AND MONTH(date) = ? AND YEAR(date) = ?`,
+                      [employee_id, month, year],
+                      (err, attendanceResults) => {
+                        if (err)
+                          return res
+                            .status(500)
+                            .send("Error fetching attendance.");
 
-                  db.query(
-                    attendanceQuery,
-                    [employee_id, month, year],
-                    (err, attendanceResults) => {
-                      if (err)
-                        return res
-                          .status(500)
-                          .send("Error fetching attendance.");
+                        let overtimeDays = 0;
+                        const detailedAttendance = attendanceResults.map(
+                          (record) => {
+                            const overtime =
+                              record.wage > basic_wage
+                                ? record.wage - basic_wage
+                                : 0;
+                            if (overtime > 0) overtimeDays++;
+                            return { ...record, overtime };
+                          }
+                        );
 
-                      let overtimeDays = 0;
-                      const detailedAttendance = attendanceResults.map(
-                        (record) => {
-                          const overtime =
-                            record.wage > basic_wage
-                              ? record.wage - basic_wage
-                              : 0;
-                          if (overtime > 0) overtimeDays++;
-                          return { ...record, overtime };
-                        }
-                      );
-
-                      summary.push({
-                        employee_id,
-                        name,
-                        totalSalary,
-                        totalLoans,
-                        totalDeductions,
-                        finalSalary,
-                        overtimeDays,
-                        detailedAttendance,
-                      });
-
-                      processed++;
-
-                      if (processed === employees.length) {
-                        res.render("salarySummary", {
-                          month,
-                          year,
-                          summary,
+                        summary.push({
+                          employee_id,
+                          name,
+                          totalSalary,
+                          totalLoans,
+                          totalDeductions,
+                          finalSalary,
+                          overtimeDays,
+                          detailedAttendance,
                         });
+
+                        processed++;
+
+                        if (processed === employees.length) {
+                          res.render("salarySummary", {
+                            month,
+                            year,
+                            summary,
+                            workplaces, // Pass workplaces to EJS
+                          });
+                        }
                       }
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
     });
   });
 });
 
 app.get("/generate-summary", (req, res) => {
-  res.render("generateSummary"); // Renders the generateSummary.ejs file
+  const workplacesQuery = `SELECT workplace_id, workplace_name FROM workplaces`;
+
+  // Fetch workplaces
+  db.query(workplacesQuery, (err, workplaces) => {
+    if (err) return console.log("Error fetching workplaces.", err);
+
+    // Add an 'All Workplaces' option (value is null, representing no filter)
+    workplaces.unshift({
+      workplace_id: null,
+      workplace_name: "All Workplaces",
+    });
+
+    res.render("generateSummary", { workplaces }); // Render with workplaces only
+  });
 });
+
 // Home page route
 app.get("/ramin", (req, res) => {
   res.render("index"); // Renders the index.ejs file

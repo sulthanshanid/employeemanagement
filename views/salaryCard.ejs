@@ -43,7 +43,7 @@
       .download-btn {
         margin: 10px;
         font-size: 16px;
-        background-color: #007bff;
+        background-color: #ea4242;
         color: white;
         padding: 10px 20px;
         border: none;
@@ -111,6 +111,24 @@
           <p class="card-text">Absent Days: <%= absentDays %></p>
         </div>
       </div>
+      <!-- Add this section for the workplace days summary in the Salary Card -->
+      <h3>Workplace Attendance</h3>
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Workplace Name</th>
+            <th>Days Worked</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% workplaceNames.forEach(workplace => { %>
+          <tr>
+            <td><%= workplace.name %></td>
+            <td><%= workplaceAttendance[workplace.workplaceId] %></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
 
       <!-- Detailed Attendance Section -->
       <h2>Detailed Attendance</h2>

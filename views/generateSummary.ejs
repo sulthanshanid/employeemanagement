@@ -35,6 +35,17 @@
             required
           />
         </div>
+        <div class="form-group">
+          <label for="workplace">Select Workplace:</label>
+          <select id="workplace" name="workplace" class="form-control" required>
+            <option value="">--Select Workplace--</option>
+            <% workplaces.forEach(workplace => { %>
+            <option value="<%= workplace. workplace_id %>">
+              <%= workplace. workplace_name %>
+            </option>
+            <% }); %>
+          </select>
+        </div>
         <button type="submit" class="btn btn-primary">Generate Summary</button>
       </form>
     </div>
