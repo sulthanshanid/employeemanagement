@@ -10,7 +10,7 @@ const PORT = 3000;
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "root", // Replace with your actual password
+  password: "", // Replace with your actual password
   database: "rami", // Replace with your actual database name
 });
 
@@ -428,7 +428,8 @@ app.post("/generate-salary", (req, res) => {
 
       // Add an overtime field for each attendance record
       const detailedAttendance = attendance.map((record) => {
-        const overtime = record.wage > dailyWage ? record.wage - dailyWage : 0;
+        const overtime =
+          Number(record.wage) > dailyWage ? Number(record.wage) - dailyWage : 0;
         return {
           ...record,
           overtime,
@@ -511,7 +512,9 @@ app.post("/generate-salary", (req, res) => {
                                 if (err) return reject(err);
                                 workplaceNames.push({
                                   workplaceId,
-                                  name: workplaceResult[0]?.workplace_name || "Unknown",
+                                  name:
+                                    workplaceResult[0]?.workplace_name ||
+                                    "Unknown",
                                 });
                                 resolve();
                               }
@@ -543,9 +546,7 @@ app.post("/generate-salary", (req, res) => {
                             });
                           })
                           .catch((err) => {
-                            return res
-                              .status(500)
-                              .send(err);
+                            return res.status(500).send(err);
                           });
                       }
                     );
@@ -570,7 +571,7 @@ app.post("/generate-summary", (req, res) => {
   if (workplace === "") {
     // Query to get all employees and their basic wages, no workplace filter
     employeesQuery = `
-      SELECT employees.employee_id, employees.name, employees.basic_wage
+      SELECT DISTINCT(employees.employee_id), employees.name, employees.basic_wage
       FROM employees
     `;
   } else {
