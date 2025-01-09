@@ -580,7 +580,7 @@ app.post("/generate-summary", (req, res) => {
   } else {
     // Query to get all employees with their basic wages, filtered by workplace_id
     employeesQuery = `
-       SELECT employees.employee_id, employees.name, basic_wage
+       SELECT DISTINCT(employees.employee_id), employees.name, basic_wage
     FROM employees,attendance
     WHERE employees.employee_id=attendance.employee_id and attendance.workplace_id = ? 
     `;
