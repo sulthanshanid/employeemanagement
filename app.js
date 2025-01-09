@@ -492,11 +492,14 @@ app.post("/generate-salary", (req, res) => {
                         // Create a table to show workplace attendance count
                         const workplaceAttendance = {};
                         attendance.forEach((record) => {
-                          const workplaceId = record.workplace_id;
-                          if (!workplaceAttendance[workplaceId]) {
-                            workplaceAttendance[workplaceId] = 0;
+                          if (record.status != "Absent") {
+                            const workplaceId = record.workplace_id;
+
+                            if (!workplaceAttendance[workplaceId]) {
+                              workplaceAttendance[workplaceId] = 0;
+                            }
+                            workplaceAttendance[workplaceId]++;
                           }
-                          workplaceAttendance[workplaceId]++;
                         });
 
                         // Fetch workplace names based on workplace IDs
