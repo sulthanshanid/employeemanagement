@@ -98,14 +98,12 @@
           </p>
           <p class="card-text">Year: <%= year %></p>
           <p class="card-text">
-            Total Salary (before deductions): <%= totalSalary.toFixed(2) %>
+            Total Salary (before deductions): <%= totalSalary %>
           </p>
-          <p class="card-text">Loan Deductions: <%= totalLoans.toFixed(2) %></p>
+          <p class="card-text">Loan Deductions: <%= totalLoans %></p>
+          <p class="card-text">Deduction Amounts: <%= totalDeductions %></p>
           <p class="card-text">
-            Deduction Amounts: <%= totalDeductions.toFixed(2) %>
-          </p>
-          <p class="card-text">
-            <strong>Net Salary: <%= netSalary.toFixed(2) %></strong>
+            <strong>Net Salary: <%= netSalary %></strong>
           </p>
           <p class="card-text">Overtime Days: <%= overtimeDays %></p>
           <p class="card-text">Absent Days: <%= absentDays %></p>
@@ -148,15 +146,16 @@
             <td><%= new Date(record.date).toLocaleDateString() %></td>
             <td><%= record.status %></td>
             <td>
-              <%= record.status === 'Absent' ? '0.00' : basic_wage.toFixed(2) %>
+              <%= record.status === 'Absent' ? '0.00' :
+              Number(record.wage).toFixed(2) %>
             </td>
             <td>
               <%= record.status === 'Absent' ? '0.00' :
-              record.overtime.toFixed(2) %>
+              Number(record.overtime).toFixed(2) %>
             </td>
             <td>
-              <%= record.status === 'Absent' ? '0.00' : (basic_wage +
-              record.overtime).toFixed(2) %>
+              <%= record.status === 'Absent' ? '0.00' : (Number(record.wage) +
+              Number(record.overtime)).toFixed(2) %>
             </td>
           </tr>
           <% }); %>
@@ -195,9 +194,9 @@
             50
           );
           doc.text(`Year: <%= year %>`, 20, 60);
-          doc.text(`Total Salary:  <%= totalSalary.toFixed(2) %>`, 20, 70);
-          doc.text(`Loan Deductions:  <%= totalLoans.toFixed(2) %>`, 20, 80);
-          doc.text(`Net Salary:  <%= netSalary.toFixed(2) %>`, 20, 90);
+          doc.text(`Total Salary:  <%= totalSalary %>`, 20, 70);
+          doc.text(`Loan Deductions:  <%= totalLoans %>`, 20, 80);
+          doc.text(`Net Salary:  <%= netSalary %>`, 20, 90);
 
           // Create a new page for Attendance Table
           doc.addPage();

@@ -34,10 +34,10 @@
           <tr>
             <td><%= record.employee_id %></td>
             <td><%= record.name %></td>
-            <td>₹<%= record.totalSalary.toFixed(2) %></td>
-            <td>₹<%= record.totalLoans.toFixed(2) %></td>
-            <td>₹<%= record.totalDeductions.toFixed(2) %></td>
-            <td>₹<%= record.finalSalary.toFixed(2) %></td>
+            <td>₹<%= record.totalSalary %></td>
+            <td>₹<%= record.totalLoans %></td>
+            <td>₹<%= record.totalDeductions %></td>
+            <td>₹<%= record.finalSalary %></td>
           </tr>
           <% }); %>
         </tbody>
@@ -89,16 +89,16 @@
         // Update the footer with calculated totals
         document.getElementById(
           "totalSalary"
-        ).textContent = `₹${totalSalary.toFixed(2)}`;
+        ).textContent = `₹${totalSalary}`;
         document.getElementById(
           "totalLoan"
-        ).textContent = `₹${totalLoan.toFixed(2)}`;
+        ).textContent = `₹${totalLoan}`;
         document.getElementById(
           "totalDeductions"
-        ).textContent = `₹${totalDeductions.toFixed(2)}`;
+        ).textContent = `₹${totalDeductions}`;
         document.getElementById(
           "finalSalary"
-        ).textContent = `₹${netSalary.toFixed(2)}`;
+        ).textContent = `₹${netSalary}`;
       });
 
       // CSV Download Functionality
@@ -159,10 +159,10 @@
               [
                 "<%= record.employee_id %>",
                 "<%= record.name %>",
-                "₹<%= record.totalSalary.toFixed(2) %>",
-                "₹<%= record.totalLoans.toFixed(2) %>",
-                "₹<%= record.totalDeductions.toFixed(2) %>",
-                "₹<%= record.finalSalary.toFixed(2) %>"
+                "₹<%= record.totalSalary %>",
+                "₹<%= record.totalLoans %>",
+                "₹<%= record.totalDeductions %>",
+                "₹<%= record.finalSalary %>"
               ],
               <% }); %>
             ],
