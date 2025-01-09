@@ -34,10 +34,10 @@
           <tr>
             <td><%= record.employee_id %></td>
             <td><%= record.name %></td>
-            <td>₹<%= record.totalSalary %></td>
-            <td>₹<%= record.totalLoans %></td>
-            <td>₹<%= record.totalDeductions %></td>
-            <td>₹<%= record.finalSalary %></td>
+            <td>AED <%= record.totalSalary %></td>
+            <td>AED <%= record.totalLoans %></td>
+            <td>AED <%= record.totalDeductions %></td>
+            <td>AED <%= record.finalSalary %></td>
           </tr>
           <% }); %>
         </tbody>
@@ -74,11 +74,11 @@
         // Loop through each row to calculate totals
         rows.forEach((row) => {
           const salary =
-            parseFloat(row.cells[2].textContent.replace("₹", "").trim()) || 0;
+            parseFloat(row.cells[2].textContent.replace("AED ", "").trim()) || 0;
           const loan =
-            parseFloat(row.cells[3].textContent.replace("₹", "").trim()) || 0;
+            parseFloat(row.cells[3].textContent.replace("AED ", "").trim()) || 0;
           const deductions =
-            parseFloat(row.cells[4].textContent.replace("₹", "").trim()) || 0;
+            parseFloat(row.cells[4].textContent.replace("AED ", "").trim()) || 0;
 
           totalSalary += salary;
           totalLoan += loan;
@@ -89,16 +89,16 @@
         // Update the footer with calculated totals
         document.getElementById(
           "totalSalary"
-        ).textContent = `₹${totalSalary}`;
+        ).textContent = `AED ${totalSalary}`;
         document.getElementById(
           "totalLoan"
-        ).textContent = `₹${totalLoan}`;
+        ).textContent = `AED ${totalLoan}`;
         document.getElementById(
           "totalDeductions"
-        ).textContent = `₹${totalDeductions}`;
+        ).textContent = `AED ${totalDeductions}`;
         document.getElementById(
           "finalSalary"
-        ).textContent = `₹${netSalary}`;
+        ).textContent = `AED ${netSalary}`;
       });
 
       // CSV Download Functionality
@@ -159,10 +159,10 @@
               [
                 "<%= record.employee_id %>",
                 "<%= record.name %>",
-                "₹<%= record.totalSalary %>",
-                "₹<%= record.totalLoans %>",
-                "₹<%= record.totalDeductions %>",
-                "₹<%= record.finalSalary %>"
+                "AED <%= record.totalSalary %>",
+                "AED <%= record.totalLoans %>",
+                "AED <%= record.totalDeductions %>",
+                "AED <%= record.finalSalary %>"
               ],
               <% }); %>
             ],
