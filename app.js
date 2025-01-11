@@ -10,7 +10,7 @@ const PORT = 3000;
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "", // Replace with your actual password
+  password: "root", // Replace with your actual password
   database: "rami", // Replace with your actual database name
 });
 
@@ -580,9 +580,10 @@ app.post("/generate-summary", (req, res) => {
   } else {
     // Query to get all employees with their basic wages, filtered by workplace_id
     employeesQuery = `
-       SELECT DISTINCT(employees.employee_id), employees.name, basic_wage
-    FROM employees,attendance
-    WHERE employees.employee_id=attendance.employee_id and attendance.workplace_id = ? 
+      SELECT DISTINCT(employees.employee_id), employees.name, employees.basic_wage
+      FROM employees
+      JOIN attendance ON employees.employee_id = attendance.employee_id
+      WHERE attendance.workplace_id = ? 
     `;
   }
 
@@ -592,9 +593,12 @@ app.post("/generate-summary", (req, res) => {
 
     // Add an 'All Workplaces' option (value is null, representing no filter)
     workplaces.unshift({ id: null, name: "All Workplaces" });
+    const selectedWorkplaceName = workplace
+      ? workplaces.find((w) => w.workplace_id == workplace)?.workplace_name
+      : "All Workplaces";
 
     // Now query the employees, filtered by the selected workplace_id
-    db.query(employeesQuery, [workplace, workplace], (err, employees) => {
+    db.query(employeesQuery, [workplace], (err, employees) => {
       if (err) return res.status(500).send(err);
 
       if (employees.length === 0)
@@ -607,17 +611,48 @@ app.post("/generate-summary", (req, res) => {
         const { employee_id, name, basic_wage } = employee;
 
         // Salary calculation query
-        db.query(
-          `SELECT SUM(wage) AS total_salary
+        const salaryQuery = `
+          SELECT SUM(wage) AS total_salary
           FROM attendance
-          WHERE employee_id = ? AND MONTH(date) = ? AND YEAR(date) = ? AND status = 'Present'`,
-          [employee_id, month, year],
-          (err, salaryResults) => {
-            if (err) return res.status(500).send("Error calculating salaries.");
+          WHERE employee_id = ? AND MONTH(date) = ? AND YEAR(date) = ? 
+          ${workplace ? "AND workplace_id = ?" : ""}
+        `;
+        const salaryParams = workplace
+          ? [employee_id, month, year, workplace]
+          : [employee_id, month, year];
 
-            const totalSalary = salaryResults[0]?.total_salary || 0;
+        db.query(salaryQuery, salaryParams, (err, salaryResults) => {
+          if (err) return res.status(500).send("Error calculating salaries.");
 
-            //l Loan calculation query
+          const totalSalary = salaryResults[0]?.total_salary || 0;
+
+          if (workplace) {
+            // When a specific workplace is chosen, set loans and deductions to 0
+            summary.push({
+              employee_id,
+              name,
+              totalSalary,
+              totalLoans: 0,
+              totalDeductions: 0,
+              finalSalary: totalSalary,
+              overtimeDays: 0, // To be calculated in attendance query
+              detailedAttendance: [], // To be filled later
+            });
+
+            processed++;
+            if (processed === employees.length) {
+              console.log("history", workplaces);
+              res.render("salarySummary", {
+                month,
+                year,
+                summary,
+                workplaces,
+                selectedWorkplaceName // Pass workplaces to EJS
+              });
+            }
+          } else {
+            let selectedWorkplaceName="";
+            // Loan calculation query
             db.query(
               `SELECT SUM(loan_amount) AS total_loans
               FROM loans
@@ -682,13 +717,14 @@ app.post("/generate-summary", (req, res) => {
                         });
 
                         processed++;
-
                         if (processed === employees.length) {
                           res.render("salarySummary", {
                             month,
                             year,
                             summary,
-                            workplaces, // Pass workplaces to EJS
+                            workplaces,
+                            selectedWorkplaceName
+                             // Pass workplaces to EJS
                           });
                         }
                       }
@@ -698,7 +734,7 @@ app.post("/generate-summary", (req, res) => {
               }
             );
           }
-        );
+        });
       });
     });
   });
