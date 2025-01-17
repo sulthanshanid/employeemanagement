@@ -10,7 +10,7 @@ const PORT = 3000;
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "root", // Replace with your actual password
+  password: "", // Replace with your actual password
   database: "rami", // Replace with your actual database name
 });
 
@@ -175,7 +175,7 @@ app.get("/get-workplace/:id", (req, res) => {
     }
   );
 });
-/*
+
 // Backend Update:
 app.get("/attendance", (req, res) => {
   const { date } = req.query; // Get the date from the query
@@ -206,7 +206,7 @@ app.get("/attendance", (req, res) => {
     });
   });
 });
-*/
+
 app.get("/attendances", (req, res) => {
   res.render("test");
 });
