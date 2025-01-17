@@ -1,0 +1,420 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Attendance Management</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f9f9f9;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      table,
+      th,
+      td {
+        border: 1px solid #ddd;
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+      }
+      .loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 24px;
+        color: #333;
+        display: none;
+        z-index: 1000;
+      }
+      .loading.active {
+        display: block;
+      }
+      .button {
+        cursor: pointer;
+        padding: 10px 15px;
+        color: #fff;
+        background-color: #007bff;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      .button.red {
+        background-color: #dc3545;
+      }
+      .button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+      #attendance-table {
+        display: none;
+      }
+      #save-attendance {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Attendance Management</h1>
+
+    <label for="attendance-date">Date:</label>
+    <input type="date" id="attendance-date" required />
+
+    <table id="attendance-table">
+      <thead>
+        <tr>
+          <th>Employee ID</th>
+          <th>Employee Name</th>
+          <th>Workplace</th>
+          <th>Wage</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="attendance-body">
+        <!-- Dynamic rows will be added here -->
+      </tbody>
+    </table>
+
+    <button class="button" id="save-attendance">Save Attendance</button>
+
+    <div class="loading" id="loading-spinner">Loading...</div>
+
+    <script>
+      let empl = []; // Declare employees globally
+      let wor = [];
+      let attb;
+
+      document
+        .getElementById("attendance-date")
+        .addEventListener("change", (e) => {
+          const selectedDate = e.target.value;
+
+          if (!selectedDate) {
+            return;
+          }
+
+          const loadingSpinner = document.getElementById("loading-spinner");
+          loadingSpinner.classList.add("active");
+
+          fetch(`/attendance?date=${selectedDate}`)
+            .then((response) => response.json())
+            .then((data) => {
+              loadingSpinner.classList.remove("active");
+              const { employees, workplaces } = data;
+              empl = employees;
+              wor = workplaces;
+
+              const attendanceBody = document.getElementById("attendance-body");
+              attb = attendanceBody;
+              attendanceBody.innerHTML = "";
+
+              employees.forEach((employee) => {
+                const row = document.createElement("tr");
+
+                // Handle workplace selection, add "Select" option for null workplace_id
+                const workplaceSelect =
+                  employee.workplace_id === null
+                    ? `<select class="workplace-select"><option value="-1" selected>Select</option>
+        ${workplaces
+          .map(
+            (wp) =>
+              `<option value="${wp.workplace_id}">${wp.workplace_name}</option>`
+          )
+          .join("")}
+      </select>`
+                    : `<select class="workplace-select">
+        ${workplaces
+          .map(
+            (wp) => `
+              <option value="${wp.workplace_id}" ${
+              employee.workplace_id === wp.workplace_id ? "selected" : ""
+            }>${wp.workplace_name}</option>
+          `
+          )
+          .join("")}
+      </select>`;
+
+                row.innerHTML = `
+    <td>${employee.employee_id}</td>
+    <td>${employee.name}</td>
+    <td>${workplaceSelect}</td>
+    <td><input type="number" class="wage-input" min="0" value="${
+      employee.wage || 0
+    }" /></td>
+    <td>
+      <select class="status-select">
+        <option value="Present" ${
+          employee.status === "Present" ? "selected" : ""
+        }>Present</option>
+        <option value="Absent" ${
+          employee.status === "Absent" || employee.status === null
+            ? "selected"
+            : ""
+        }>Absent</option>
+        <option value="Leave" ${
+          employee.status === "Leave" ? "selected" : ""
+        }>Leave</option>
+      </select>
+    </td>
+    <td>
+      <span class="add-entry" onclick="addWorkplaceEntry(${
+        employee.employee_id
+      })">➕</span>
+      <span class="remove-entry" onclick="removeWorkplaceEntry(this)">❌</span>
+    </td>
+  `;
+
+                attendanceBody.appendChild(row);
+              });
+
+              document.getElementById("attendance-table").style.display =
+                "block";
+              document.getElementById("save-attendance").style.display =
+                "block";
+            })
+            .catch((error) => {
+              loadingSpinner.classList.remove("active");
+              console.error("Error fetching attendance data: ", error);
+            });
+        });
+      function addWorkplaceEntry(employeeId) {
+        console.log(empl);
+        const employee = empl.find(
+          (employee) => employee.employee_id === employeeId
+        );
+
+        console.log(employee);
+        const row = createEmployeeRow(employee);
+        const currentRow = event.target.closest("tr");
+        currentRow.parentNode.insertBefore(row, currentRow.nextSibling);
+      }
+
+      function removeWorkplaceEntry(button) {
+        const row = button.closest("tr");
+        attb.removeChild(row);
+      }
+
+      document
+        .getElementById("save-attendance")
+        .addEventListener("click", () => {
+          const date = document.getElementById("attendance-date").value;
+
+          const data = Array.from(
+            document.querySelectorAll("#attendance-body tr")
+          ).map((row) => {
+            const employeeId = row.children[0].textContent;
+            const workplaceId = row.querySelector(".workplace-select").value;
+            const wage = row.querySelector(".wage-input").value;
+            const status = row.querySelector(".status-select").value;
+
+            return { employeeId, workplaceId, wage, status };
+          });
+
+          fetch("/saveWages", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ date, data }),
+          })
+            .then((response) => {
+              if (response.ok) {
+                alert("Attendance saved successfully!");
+              } else {
+                alert("Error saving attendance.");
+              }
+            })
+            .catch((error) => {
+              console.error("Error saving attendance: ", error);
+            });
+        });
+      function createEmployeeRow(employee) {
+        const row = document.createElement("tr");
+        row.dataset.employeeId = employee.employee_id;
+
+        // Check if employee's workplace_id is null and set the default option accordingly
+        const workplaceOptions = wor
+          .map(
+            (wp) =>
+              `<option value="${wp.workplace_id}" ${
+                employee.workplace_id === wp.workplace_id ? "selected" : ""
+              }>${wp.workplace_name}</option>`
+          )
+          .join("");
+
+        // Add the "Select" option with value="" for employees with no workplace
+        const workplaceSelect =
+          employee.workplace_id === null
+            ? `<select class="workplace-select"><option value="-1" selected>Select</option>${workplaceOptions}</select>`
+            : `<select class="workplace-select">${workplaceOptions}</select>`;
+
+        row.innerHTML = `
+    <td>${employee.employee_id}</td>
+    <td>${employee.name}</td>
+    <td>${workplaceSelect}</td>
+    <td><input type="number" class="wage-input" min="0" value="${
+      employee.wage || 0
+    }" placeholder="Enter wage"></td>
+    <td>
+      <select class="status-select">
+        <option value="Present" ${
+          employee.status === "Present" ? "selected" : ""
+        }>Present</option>
+        <option value="Absent" ${
+          employee.status === "Absent" ? "selected" : ""
+        }>Absent</option>
+        <option value="Leave" ${
+          employee.status === "Leave" ? "selected" : ""
+        }>Leave</option>
+      </select>
+    </td>
+    <td>
+      <span class="remove-entry" onclick="removeWorkplaceEntry(this)">❌</span>
+    </td>
+  `;
+
+        return row;
+      }
+
+      document
+        .querySelector("#attendance-body")
+        .addEventListener("input", (e) => {
+          if (e.target.classList.contains("wage-input")) {
+            const row = e.target.closest("tr");
+            const wageValue = parseFloat(e.target.value);
+            const statusSelect = row.querySelector(".status-select");
+
+            // Update status based on wage input
+            if (wageValue > 0) {
+              statusSelect.value = "Present";
+            } else {
+              statusSelect.value = "Absent";
+            }
+
+            // Optionally, add red row highlighting logic
+            if (wageValue > 999) {
+              row.classList.add("red-row");
+            } else {
+              row.classList.remove("red-row");
+            }
+          }
+        });
+
+      // Check if the age is less than 999 to mark the row red
+    </script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f9f9f9;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      table,
+      th,
+      td {
+        border: 1px solid #ddd;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+      }
+
+      button {
+        cursor: pointer;
+        padding: 10px 15px;
+        color: #fff;
+        background-color: #007bff;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        margin-top: 10px;
+      }
+
+      button.red {
+        background-color: #dc3545;
+      }
+
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      .loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 24px;
+        color: #333;
+        display: none;
+        z-index: 1000;
+      }
+
+      .loading.active {
+        display: block;
+      }
+
+      .red-row {
+        background-color: #f8d7da; /* Light red background for rows with wage 0 or less */
+      }
+
+      input[type="number"],
+      select {
+        padding: 8px;
+        font-size: 14px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      input[type="number"]:focus,
+      select:focus {
+        border-color: #007bff;
+        outline: none;
+      }
+
+      span.add-entry,
+      span.remove-entry {
+        cursor: pointer;
+        padding: 5px;
+        font-size: 18px;
+        color: #007bff;
+      }
+
+      span.remove-entry {
+        color: #dc3545;
+      }
+
+      span.add-entry:hover,
+      span.remove-entry:hover {
+        opacity: 0.8;
+      }
+    </style>
+  </body>
+</html>

@@ -175,13 +175,14 @@ app.get("/get-workplace/:id", (req, res) => {
     }
   );
 });
-
+/*
+// Backend Update:
 app.get("/attendance", (req, res) => {
   const { date } = req.query; // Get the date from the query
 
   // Query to fetch all employees with their workplace and attendance status for the selected date
   const getEmployeesQuery = `
-      SELECT e.employee_id, e.name, a.status, a.wage 
+      SELECT e.employee_id, e.name, a.status, a.wage, a.workplace_id
       FROM employees e
       LEFT JOIN attendance a ON e.employee_id = a.employee_id AND a.date = ?
     `;
@@ -200,116 +201,61 @@ app.get("/attendance", (req, res) => {
         return res.status(500).send("Error fetching workplaces.");
       }
 
-      // Render the template, passing both employees and workplaces
-      res.render("attendanceForm", {
-        employees,
-        workplaces,
-        selectedDate: date,
-      });
+      // Send JSON response with employees and workplaces
+      res.json({ employees, workplaces, selectedDate: date });
     });
   });
 });
-
-// Post Route: Display employees and attendance data for a specific date
-app.post("/updateWages", (req, res) => {
-  const { date } = req.body; // Get selected date from form submission
-
-  // Fetch employees and workplaces for the selected date
-  const getEmployeesQuery = `
-        SELECT e.employee_id, e.name, a.status, a.wage,a.workplace_id
-        FROM employees e
-        LEFT JOIN attendance a ON e.employee_id = a.employee_id AND a.date = ?
-    `;
-  const getWorkplacesQuery = "SELECT * FROM workplaces";
-
-  // Fetch employee data
-  db.query(getEmployeesQuery, [date], (err, employees) => {
-    if (err) {
-      return res.status(500).json({ error: "Error fetching employees." });
-    }
-
-    // Fetch workplace data
-    db.query(getWorkplacesQuery, (err, workplaces) => {
-      if (err) {
-        return res.status(500).json({ error: "Error fetching workplaces." });
-      }
-
-      // Return employee data and workplaces in JSON format for AJAX
-      res.json({
-        employees,
-        workplaces,
-        selectedDate: date,
-      });
-    });
-  });
+*/
+app.get("/attendances", (req, res) => {
+  res.render("test");
 });
-
 // Post Route: Save the attendance and wage data
 app.post("/saveWages", (req, res) => {
-  const selectedDate = req.body.date;
-  let processedCount = 0; // Counter to track completed database operations
-  const totalEmployees = Object.keys(req.body).filter((key) =>
-    key.startsWith("wage_")
-  ).length; // Total number of employees
+  const { date, data } = req.body; // Receive JSON with date and attendance data
 
-  const updateQueries = [];
+  const updateQueries = data.map((item) => {
+    const { employeeId, wage, status, workplaceId } = item;
 
-  // Loop through each employee and update their wage and status
-  for (let employeeId in req.body) {
-    if (employeeId.startsWith("wage_")) {
-      const wage = req.body[employeeId];
-      const empId = employeeId.split("_")[1]; // Extract employee ID from field name
-      const status = req.body[`status_${empId}`]; // Get attendance status
-      let workplace_id = req.body[`workplace_${empId}`];
+    // Prepare the query
+    const query = `
+     INSERT INTO attendance (employee_id, date, status, wage, workplace_id)
+VALUES (?, ?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE wage = ?, status = ?, workplace_id = ?;
 
-      // If workplace_id is empty, set it to NULL
-      if (workplace_id === "") {
-        workplace_id = null;
-      }
+    `;
 
-      // Prepare the query
-      const query = `
-        INSERT INTO attendance (employee_id, date, status, wage, workplace_id)
-        VALUES (?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE wage = ?, status = ?, workplace_id = ?
-      `;
+    // Prepare query parameters
+    const queryParams = [
+      employeeId,
+      date,
+      status,
+      wage,
+      workplaceId || null,
+      wage,
+      status,
+      workplaceId || null,
+    ];
 
-      // Prepare query parameters
-      const queryParams = [
-        empId,
-        selectedDate,
-        status,
-        wage,
-        workplace_id,
-        wage,
-        status,
-        workplace_id,
-      ];
+    return new Promise((resolve, reject) => {
+      db.query(query, queryParams, (err, result) => {
+        if (err) {
+          console.error("MySQL Error: ", err);
+          reject("Database error");
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
 
-      // Add the query and parameters to the list
-      updateQueries.push(
-        new Promise((resolve, reject) => {
-          db.query(query, queryParams, (err, result) => {
-            if (err) {
-              console.error("MySQL Error: ", err); // Log the MySQL error
-              reject("Database error");
-            } else {
-              console.log("MySQL Response: ", result);
-              resolve(); // Resolve the promise when query is successful
-            }
-          });
-        })
-      );
-    }
-  }
-
-  // After all queries are added, wait for all of them to finish
+  // Wait for all queries to finish
   Promise.all(updateQueries)
     .then(() => {
-      res.redirect("/attendance"); // Redirect only once after all queries are completed
+      res.status(200).send("Attendance saved successfully.");
     })
     .catch((err) => {
-      res.status(500).send(err); // Send an error response if any query failed
+      res.status(500).send(err);
     });
 });
 
@@ -647,11 +593,11 @@ app.post("/generate-summary", (req, res) => {
                 year,
                 summary,
                 workplaces,
-                selectedWorkplaceName // Pass workplaces to EJS
+                selectedWorkplaceName, // Pass workplaces to EJS
               });
             }
           } else {
-            let selectedWorkplaceName="";
+            let selectedWorkplaceName = "";
             // Loan calculation query
             db.query(
               `SELECT SUM(loan_amount) AS total_loans
@@ -723,8 +669,8 @@ app.post("/generate-summary", (req, res) => {
                             year,
                             summary,
                             workplaces,
-                            selectedWorkplaceName
-                             // Pass workplaces to EJS
+                            selectedWorkplaceName,
+                            // Pass workplaces to EJS
                           });
                         }
                       }
