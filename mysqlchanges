@@ -1,5 +1,4 @@
 ALTER TABLE attendance DROP FOREIGN KEY attendance_ibfk_1;
 ALTER TABLE attendance DROP INDEX unique_employee_date;
 ALTER TABLE attendance ADD UNIQUE INDEX unique_employee_date (employee_id, date, workplace_id);
-
 ALTER TABLE attendance ADD CONSTRAINT attendance_ibfk_1 FOREIGN KEY (employee_id) REFERENCES employees (employee_id);

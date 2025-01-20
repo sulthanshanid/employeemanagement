@@ -147,14 +147,14 @@
             <td><%= record.status %></td>
             <td>
               <%= record.status === 'Absent' ? '0.00' :
-              Number(record.wage).toFixed(2) %>
+              Number(record.basic_wage).toFixed(2) %>
             </td>
             <td>
               <%= record.status === 'Absent' ? '0.00' :
               Number(record.overtime).toFixed(2) %>
             </td>
             <td>
-              <%= record.status === 'Absent' ? '0.00' : (Number(record.wage) +
+              <%= record.status === 'Absent' ? '0.00' : (Number(record.basic_wage) +
               Number(record.overtime)).toFixed(2) %>
             </td>
           </tr>
