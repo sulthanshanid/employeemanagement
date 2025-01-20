@@ -489,7 +489,7 @@ app.post("/generate-salary", (req, res) => {
                               netSalary,
                               overtimeDays,
                               absentDays,
-                              basic_wage,
+                              
                               workplaceAttendance,
                               workplaceNames,
                             });
@@ -629,9 +629,9 @@ app.post("/generate-summary", (req, res) => {
 
                     // Attendance details query
                     db.query(
-                      `SELECT date, status, wage
-                      FROM attendance
-                      WHERE employee_id = ? AND MONTH(date) = ? AND YEAR(date) = ?`,
+                      `SELECT basic_wage,date, status, wage
+                      FROM attendance,employee
+                      WHERE attendance.employee_id=employee.employee_id and employee_id = ? AND MONTH(date) = ? AND YEAR(date) = ?`,
                       [employee_id, month, year],
                       (err, attendanceResults) => {
                         if (err)
