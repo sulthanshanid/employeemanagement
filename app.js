@@ -317,9 +317,9 @@ app.post("/generate-salary", (req, res) => {
 
   // Query for detailed attendance, including workplace ID
   const attendanceQuery = `
-    SELECT a.date, a.wage, a.status, a.workplace_id
-    FROM attendance a
-    WHERE a.employee_id = ? AND MONTH(a.date) = ? AND YEAR(a.date) = ?`;
+    SELECT e.basic_wage,a.date, a.wage, a.status, a.workplace_id
+    FROM attendance a ,employee e 
+    WHERE e.employee_id=a.employee_id  and a.employee_id = ? AND MONTH(a.date) = ? AND YEAR(a.date) = ?`;
 
   // Query for total salary calculation
   const salaryQuery = `
@@ -629,9 +629,9 @@ app.post("/generate-summary", (req, res) => {
 
                     // Attendance details query
                     db.query(
-                      `SELECT basic_wage,date, status, wage
-                      FROM attendance,employee
-                      WHERE attendance.employee_id=employee.employee_id and employee_id = ? AND MONTH(date) = ? AND YEAR(date) = ?`,
+                      `SELECT date, status, wage
+                      FROM attendance
+                      WHERE  employee_id = ? AND MONTH(date) = ? AND YEAR(date) = ?`,
                       [employee_id, month, year],
                       (err, attendanceResults) => {
                         if (err)
