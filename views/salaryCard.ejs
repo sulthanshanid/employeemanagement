@@ -146,16 +146,18 @@
             <td><%= new Date(record.date).toLocaleDateString() %></td>
             <td><%= record.status %></td>
             <td>
-              <%= record.status === 'Absent' ? '0.00' :
-              Number(record.basic_wage).toFixed(2) %>
+              <%= record.status === 'Absent' ? '0.00' : (record.wage >
+              record.basic_wage ? Number(record.basic_wage) :
+              Number(record.wage)).toFixed(2) %>
             </td>
             <td>
               <%= record.status === 'Absent' ? '0.00' :
               Number(record.overtime).toFixed(2) %>
             </td>
             <td>
-              <%= record.status === 'Absent' ? '0.00' : (Number(record.basic_wage) +
-              Number(record.overtime)).toFixed(2) %>
+              <%= record.status === 'Absent' ? '0.00' :
+              (Number(record.basic_wage) + Number(record.overtime)).toFixed(2)
+              %>
             </td>
           </tr>
           <% }); %>
