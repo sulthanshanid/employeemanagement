@@ -10,7 +10,7 @@ const PORT = 3000;
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "", // Replace with your actual password
+  password: "root", // Replace with your actual password
   database: "rami", // Replace with your actual database name
 });
 
@@ -424,15 +424,15 @@ app.post("/generate-salary", (req, res) => {
                             .send("Error calculating overtime days.");
 
                         const totalLoans = loans.reduce(
-                          (sum, loan) => sum + loan.loan_amount,
+                          (sum, loan) => Number(sum) + Number(loan.loan_amount),
                           0
                         );
                         const totalDeductions = deductions.reduce(
-                          (sum, deduction) => sum + deduction.amount,
+                          (sum, deduction) => Number(sum) + Number(deduction.amount),
                           0
                         );
                         const netSalary =
-                          totalSalary - totalLoans - totalDeductions;
+                          Number(totalSalary) - Number(totalLoans) - Number(totalDeductions);
                         const overtimeDays = overtimeResult[0].overtime_days;
 
                         // Create a table to show workplace attendance count
@@ -475,6 +475,7 @@ app.post("/generate-salary", (req, res) => {
                         Promise.all(workplacePromises)
                           .then(() => {
                             // Render the salary card with all data, including employee name and workplace attendance
+                            console.log(totalLoans)
                             res.render("salaryCard", {
                               employee_id,
                               name,
