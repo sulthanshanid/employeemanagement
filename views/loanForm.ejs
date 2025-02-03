@@ -153,6 +153,15 @@
             <td><%= loan.name %> <%= loan.last_name %></td>
             <td><%= loan.loan_amount %></td>
             <td><%= loan.loan_date %></td>
+            <td>
+              <form
+                action="/loan/delete/<%= loan.loan_id %>"
+                method="POST"
+                onsubmit="return confirm('Are you sure you want to delete this loan?');"
+              >
+                <button type="submit" class="button delete">Delete</button>
+              </form>
+            </td>
           </tr>
           <% }); %>
         </tbody>

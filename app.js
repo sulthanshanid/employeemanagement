@@ -295,6 +295,16 @@ app.post("/loan", (req, res) => {
     res.redirect("/loan");
   });
 });
+app.post("/loan/delete/:loan_id", (req, res) => {
+  const { loan_id } = req.params;
+
+  db.query("DELETE FROM loans WHERE loan_id = ?", [loan_id], (err, result) => {
+    if (err) {
+      return res.status(500).send("Error deleting loan.");
+    }
+    res.redirect("/loan");
+  });
+});
 
 app.get("/generate-salary", (req, res) => {
   db.query("SELECT employee_id, name FROM employees", (err, employees) => {
@@ -710,21 +720,31 @@ app.get("/ramin", (req, res) => {
 });
 // GET Route: Display deduction form
 app.get("/deduction", (req, res) => {
+  // Fetch all employees and their deductions
   const getEmployeesQuery = "SELECT employee_id, name FROM employees";
+  const getAllDeductionsQuery = "SELECT d.deduction_id, d.employee_id, d.date, d.amount, d.remark, e.name FROM Deduction d JOIN employees e ON d.employee_id = e.employee_id ORDER BY d.date DESC";
 
   db.query(getEmployeesQuery, (err, employees) => {
     if (err) {
       console.error("Error fetching employees:", err);
       return res.status(500).send("Database error");
     }
-    res.render("deductionForm", {
-      employees,
-      deductions: [],
-      selectedEmployeeId: null,
+
+    db.query(getAllDeductionsQuery, (err, deductions) => {
+      if (err) {
+        console.error("Error fetching deductions:", err);
+        return res.status(500).send("Error fetching deductions");
+      }
+      res.render("deductionForm", {
+        employees,
+        deductions,
+        selectedEmployeeId: null,
+      });
     });
   });
 });
 
+// Handle form submission for adding a deduction
 app.post("/deduction", (req, res) => {
   const { employee_id, date, amount, remarks } = req.body;
 
@@ -732,44 +752,32 @@ app.post("/deduction", (req, res) => {
     return res.status(400).send("Employee must be selected.");
   }
 
-  // Insert deduction into the database
-  const deductionQuery = `
-      INSERT INTO Deduction (employee_id, date, amount, remark)
-      VALUES (?, ?, ?, ?)
-    `;
+  const deductionQuery = `INSERT INTO Deduction (employee_id, date, amount, remark) VALUES (?, ?, ?, ?)`;
 
   db.query(deductionQuery, [employee_id, date, amount, remarks], (err) => {
     if (err) {
       console.error("Error inserting deduction:", err);
       return res.status(500).send("Error inserting deduction");
     }
+    res.redirect("/deduction");
+  });
+});
 
-    // After insertion, get the updated deductions for the selected employee
-    const getDeductionsQuery = `
-        SELECT * FROM Deduction WHERE employee_id = ? ORDER BY date DESC
-      `;
+// Handle deduction deletion
+app.post("/deduction/delete", (req, res) => {
+  const { deduction_id } = req.body;
 
-    db.query(getDeductionsQuery, [employee_id], (err, deductions) => {
-      if (err) {
-        console.error("Error fetching deductions:", err);
-        return res.status(500).send("Error fetching deductions");
-      }
+  if (!deduction_id) {
+    return res.status(400).send("Deduction ID is required.");
+  }
 
-      // Re-render the page with the updated deductions
-      const getEmployeesQuery = "SELECT employee_id, name FROM employees";
-      db.query(getEmployeesQuery, (err, employees) => {
-        if (err) {
-          console.error("Error fetching employees:", err);
-          return res.status(500).send("Error fetching employees");
-        }
-
-        res.render("deductionForm", {
-          employees,
-          deductions,
-          selectedEmployeeId: employee_id,
-        });
-      });
-    });
+  const deleteQuery = "DELETE FROM Deduction WHERE deduction_id = ?";
+  db.query(deleteQuery, [deduction_id], (err) => {
+    if (err) {
+      console.error("Error deleting deduction:", err);
+      return res.status(500).send("Error deleting deduction");
+    }
+    res.redirect("/deduction");
   });
 });
 
