@@ -34,6 +34,7 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 // Dashboard route to fetch employees and workplaces and render the page
+// Route to fetch employees
 app.get("/dashboard", (req, res) => {
   const getEmployeesQuery = "SELECT * FROM employees";
   const getWorkplacesQuery = "SELECT * FROM workplaces";
@@ -51,18 +52,17 @@ app.get("/dashboard", (req, res) => {
   });
 });
 
-// Route to update an employee
+// Route to update employee including the status field
 app.post("/update-employee/:id", (req, res) => {
   const employeeId = req.params.id;
-  const { name, designation, basic_wage, workplace, dailyWage } = req.body;
+  const { name, designation, basic_wage, status } = req.body;
 
-  // Make sure to use the correct column name for employee ID
   const updateEmployeeQuery =
-    "UPDATE employees SET name = ?, designation = ? ,basic_wage=? WHERE employee_id = ?";
+    "UPDATE employees SET name = ?, designation = ?, basic_wage = ?, status = ? WHERE employee_id = ?";
 
   db.query(
     updateEmployeeQuery,
-    [name, designation, basic_wage, employeeId],
+    [name, designation, basic_wage, status, employeeId],
     (err) => {
       if (err) {
         return res.status(500).send("Error updating employee.");
@@ -74,11 +74,11 @@ app.post("/update-employee/:id", (req, res) => {
 
 // Route to add a new employee
 app.post("/add-employee", (req, res) => {
-  const { name, designation, basic_wage } = req.body;
+  const { name, designation, basic_wage, status } = req.body;
   const addEmployeeQuery =
-    "INSERT INTO employees (name, designation,basic_wage ) VALUES (?, ?,?)";
+    "INSERT INTO employees (name, designation, basic_wage, status) VALUES (?, ?, ?, ?)";
 
-  db.query(addEmployeeQuery, [name, designation, basic_wage], (err) => {
+  db.query(addEmployeeQuery, [name, designation, basic_wage, status], (err) => {
     if (err) {
       return res.status(500).send("Error adding employee.");
     }
@@ -90,7 +90,6 @@ app.post("/add-employee", (req, res) => {
 app.get("/get-employee/:id", (req, res) => {
   const employeeId = req.params.id;
 
-  // Query for specific employee
   db.query(
     "SELECT * FROM employees WHERE employee_id = ?",
     [employeeId],
@@ -100,7 +99,6 @@ app.get("/get-employee/:id", (req, res) => {
         return res.status(500).send("Database error");
       }
 
-      // If the employee is found, return the data
       if (result.length > 0) {
         res.json(result[0]);
       } else {
@@ -109,13 +107,18 @@ app.get("/get-employee/:id", (req, res) => {
     }
   );
 });
-app.get("/workplaces", (req, res) => {
-  const getWorkplacesQuery = "SELECT * FROM workplaces";
-  db.query(getWorkplacesQuery, (err, workplaces) => {
+
+// Route to delete an employee
+app.delete("/delete-employee/:id", (req, res) => {
+  const employeeId = req.params.id;
+
+  const deleteEmployeeQuery = "DELETE FROM employees WHERE employee_id = ?";
+
+  db.query(deleteEmployeeQuery, [employeeId], (err) => {
     if (err) {
-      return res.status(500).send("Error fetching workplaces.");
+      return res.status(500).send("Error deleting employee.");
     }
-    res.render("workplaces", { workplaces });
+    res.status(200).send("Employee deleted successfully.");
   });
 });
 
@@ -134,7 +137,15 @@ app.post("/add-workplace", (req, res) => {
     res.redirect("/workplaces");
   });
 });
-
+app.get("/workplaces", (req, res) => {
+  const getWorkplacesQuery = "SELECT * FROM workplaces";
+  db.query(getWorkplacesQuery, (err, workplaces) => {
+    if (err) {
+      return res.status(500).send("Error fetching workplaces.");
+    }
+    res.render("workplaces", { workplaces });
+  });
+});
 app.post("/update-workplace/:id", (req, res) => {
   const workplaceId = req.params.id;
   const { workplaceName } = req.body;
@@ -175,6 +186,19 @@ app.get("/get-workplace/:id", (req, res) => {
     }
   );
 });
+app.post("/delete-workplace/:id", (req, res) => {
+  const workplaceId = req.params.id;
+
+  const deleteWorkplaceQuery = "DELETE FROM workplaces WHERE workplace_id = ?";
+
+  db.query(deleteWorkplaceQuery, [workplaceId], (err) => {
+    if (err) {
+      console.error("Error deleting workplace:", err.message);
+      return res.status(500).send("Error deleting workplace.");
+    }
+    res.redirect("/workplaces");
+  });
+});
 
 // Backend Update:
 app.get("/attendance", (req, res) => {
@@ -183,8 +207,10 @@ app.get("/attendance", (req, res) => {
   // Query to fetch all employees with their workplace and attendance status for the selected date
   const getEmployeesQuery = `
       SELECT e.employee_id, e.name, a.status, a.wage, a.workplace_id
-      FROM employees e
-      LEFT JOIN attendance a ON e.employee_id = a.employee_id AND a.date = ?
+FROM employees e
+LEFT JOIN attendance a ON e.employee_id = a.employee_id AND a.date = ?
+WHERE e.status = "Working"
+
     `;
 
   // Query to fetch all workplaces

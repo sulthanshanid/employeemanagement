@@ -177,13 +177,20 @@
           <span
             ><strong>Name:</strong> <%= employee.name %> |
             <strong>Role:</strong> <%= employee.designation %> |
-            <strong>Wage:</strong> $<%= employee.basic_wage %></span
+            <strong>Wage:</strong> $<%= employee.basic_wage %> |
+            <strong>Status:</strong> <%= employee.status %></span
           >
           <button
             class="button"
             onclick="editEmployee(<%= employee.employee_id %>)"
           >
             Edit
+          </button>
+          <button
+            class="button"
+            onclick="deleteEmployee(<%= employee.employee_id %>)"
+          >
+            Delete
           </button>
         </li>
         <% }); %>
@@ -206,6 +213,11 @@
             required
           />
           <input type="number" name="basic_wage" placeholder="Wage" required />
+          <select name="status" required>
+            <option value="working">Working</option>
+            <option value="leave">On Leave</option>
+            <option value="left">Left</option>
+          </select>
           <button type="submit">Add Employee</button>
           <button type="button" onclick="closeEmployeeForm()">Cancel</button>
         </form>
@@ -239,6 +251,11 @@
             placeholder="Wage"
             required
           />
+          <select name="status" id="edit-status" required>
+            <option value="working">Working</option>
+            <option value="leave">On Leave</option>
+            <option value="left">Left</option>
+          </select>
           <button type="submit">Save Changes</button>
           <button type="button" onclick="closeEditEmployeeForm()">
             Cancel
@@ -280,6 +297,7 @@
             document.getElementById("edit-designation").value =
               employee.designation;
             document.getElementById("edit-wage").value = employee.basic_wage;
+            document.getElementById("edit-status").value = employee.status;
 
             document.getElementById(
               "edit-form"
@@ -311,6 +329,24 @@
       // Go to Home screen (or main page)
       function goHome() {
         window.location.href = "/ramin";
+      }
+
+      // Delete Employee
+      function deleteEmployee(employeeId) {
+        const confirmation = confirm(
+          "Are you sure you want to delete this employee?"
+        );
+        if (confirmation) {
+          fetch(`/delete-employee/${employeeId}`, {
+            method: "DELETE",
+          })
+            .then(() => {
+              location.reload();
+            })
+            .catch((error) => {
+              console.error("Error deleting employee:", error);
+            });
+        }
       }
     </script>
   </body>

@@ -41,15 +41,26 @@
 
       button {
         padding: 5px 10px;
-        background-color: #ea4242;
         color: white;
         border: none;
         cursor: pointer;
         border-radius: 4px;
       }
 
-      button:hover {
+      .edit-button {
+        background-color: #007bff;
+      }
+
+      .edit-button:hover {
         background-color: #0056b3;
+      }
+
+      .delete-button {
+        background-color: #d9534f;
+      }
+
+      .delete-button:hover {
+        background-color: #c9302c;
       }
 
       #edit-workplace-form {
@@ -114,9 +125,27 @@
         <% workplaces.forEach(workplace => { %>
         <li>
           <%= workplace.workplace_name %>
-          <button onclick="editWorkplace(<%= workplace.workplace_id %>)">
-            Edit
-          </button>
+          <div>
+            <button
+              class="edit-button"
+              onclick="editWorkplace(<%= workplace.workplace_id %>)"
+            >
+              Edit
+            </button>
+            <form
+              action="/delete-workplace/<%= workplace.workplace_id %>"
+              method="POST"
+              style="display: inline"
+            >
+              <button
+                type="submit"
+                class="delete-button"
+                onclick="return confirmDelete();"
+              >
+                Delete
+              </button>
+            </form>
+          </div>
         </li>
         <% }); %>
       </ul>
@@ -195,6 +224,11 @@
       // Close Modal Function
       function closeModal() {
         document.getElementById("workplaceModal").style.display = "none";
+      }
+
+      // Confirm Delete Function
+      function confirmDelete() {
+        return confirm("Are you sure you want to delete this workplace?");
       }
     </script>
   </body>
