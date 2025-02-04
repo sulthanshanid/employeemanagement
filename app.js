@@ -206,50 +206,80 @@ app.get("/attendance", (req, res) => {
     });
   });
 });
-
 app.get("/attendances", (req, res) => {
   res.render("test");
 });
-// Post Route: Save the attendance and wage data
 app.post("/saveWages", (req, res) => {
-  const { date, data } = req.body; // Receive JSON with date and attendance data
+  const { date, data } = req.body;
 
   const updateQueries = data.map((item) => {
     const { employeeId, wage, status, workplaceId } = item;
 
-    // Prepare the query
-    const query = `
-     INSERT INTO attendance (employee_id, date, status, wage, workplace_id)
-VALUES (?, ?, ?, ?, ?)
-ON DUPLICATE KEY UPDATE wage = ?, status = ?, workplace_id = ?;
-
-    `;
-
-    // Prepare query parameters
-    const queryParams = [
-      employeeId,
-      date,
-      status,
-      wage,
-      workplaceId || null,
-      wage,
-      status,
-      workplaceId || null,
-    ];
-
     return new Promise((resolve, reject) => {
-      db.query(query, queryParams, (err, result) => {
+      // Check if a row with the same employeeId, date, and workplaceId already exists
+      const checkQuery = `
+        SELECT * FROM attendance 
+        WHERE employee_id = ? AND date = ? AND workplace_id = ?;
+      `;
+
+      const checkParams = [employeeId, date, workplaceId || -1];
+
+      db.query(checkQuery, checkParams, (err, results) => {
         if (err) {
           console.error("MySQL Error: ", err);
-          reject("Database error");
+          return reject("Database error");
+        }
+
+        if (results.length > 0) {
+          // Update existing record
+          const updateQuery = `
+            UPDATE attendance 
+            SET wage = ?, status = ? 
+            WHERE employee_id = ? AND date = ? AND workplace_id = ?;
+          `;
+
+          const updateParams = [
+            wage,
+            status,
+            employeeId,
+            date,
+            workplaceId || -1,
+          ];
+
+          db.query(updateQuery, updateParams, (err) => {
+            if (err) {
+              console.error("MySQL Update Error: ", err);
+              return reject("Update error");
+            }
+            resolve();
+          });
         } else {
-          resolve();
+          // Insert new record
+          const insertQuery = `
+            INSERT INTO attendance (employee_id, date, status, wage, workplace_id) 
+            VALUES (?, ?, ?, ?, ?);
+          `;
+
+          const insertParams = [
+            employeeId,
+            date,
+            status,
+            wage,
+            workplaceId || -1,
+          ];
+
+          db.query(insertQuery, insertParams, (err) => {
+            if (err) {
+              console.error("MySQL Insert Error: ", err);
+              return reject("Insert error");
+            }
+            resolve();
+          });
         }
       });
     });
   });
 
-  // Wait for all queries to finish
   Promise.all(updateQueries)
     .then(() => {
       res.status(200).send("Attendance saved successfully.");
@@ -438,11 +468,14 @@ app.post("/generate-salary", (req, res) => {
                           0
                         );
                         const totalDeductions = deductions.reduce(
-                          (sum, deduction) => Number(sum) + Number(deduction.amount),
+                          (sum, deduction) =>
+                            Number(sum) + Number(deduction.amount),
                           0
                         );
                         const netSalary =
-                          Number(totalSalary) - Number(totalLoans) - Number(totalDeductions);
+                          Number(totalSalary) -
+                          Number(totalLoans) -
+                          Number(totalDeductions);
                         const overtimeDays = overtimeResult[0].overtime_days;
 
                         // Create a table to show workplace attendance count
@@ -485,7 +518,7 @@ app.post("/generate-salary", (req, res) => {
                         Promise.all(workplacePromises)
                           .then(() => {
                             // Render the salary card with all data, including employee name and workplace attendance
-                            console.log(totalLoans)
+                            console.log(totalLoans);
                             res.render("salaryCard", {
                               employee_id,
                               name,
@@ -500,7 +533,7 @@ app.post("/generate-salary", (req, res) => {
                               netSalary,
                               overtimeDays,
                               absentDays,
-                              
+
                               workplaceAttendance,
                               workplaceNames,
                             });
@@ -722,7 +755,8 @@ app.get("/ramin", (req, res) => {
 app.get("/deduction", (req, res) => {
   // Fetch all employees and their deductions
   const getEmployeesQuery = "SELECT employee_id, name FROM employees";
-  const getAllDeductionsQuery = "SELECT d.deduction_id, d.employee_id, d.date, d.amount, d.remark, e.name FROM Deduction d JOIN employees e ON d.employee_id = e.employee_id ORDER BY d.date DESC";
+  const getAllDeductionsQuery =
+    "SELECT d.deduction_id, d.employee_id, d.date, d.amount, d.remark, e.name FROM Deduction d JOIN employees e ON d.employee_id = e.employee_id ORDER BY d.date DESC";
 
   db.query(getEmployeesQuery, (err, employees) => {
     if (err) {

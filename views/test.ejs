@@ -1,7 +1,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Attendance Management</title>
     <link
@@ -128,7 +128,7 @@
 
                 // Handle workplace selection, add "Select" option for null workplace_id
                 const workplaceSelect =
-                  employee.workplace_id === null
+                  employee.workplace_id === -1
                     ? `<select class="workplace-select"><option value="-1" selected>Select</option>
         ${workplaces
           .map(
@@ -259,7 +259,7 @@
 
         // Add the "Select" option with value="" for employees with no workplace
         const workplaceSelect =
-          employee.workplace_id === null
+          employee.workplace_id === -1
             ? `<select class="workplace-select"><option value="-1" selected>Select</option>${workplaceOptions}</select>`
             : `<select class="workplace-select">${workplaceOptions}</select>`;
 
