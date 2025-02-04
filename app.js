@@ -212,16 +212,50 @@ app.get("/attendances", (req, res) => {
 app.post("/saveWages", (req, res) => {
   const { date, data } = req.body;
 
+  // Prepare valid pairs (employeeId, workplaceId) from received data
+  const validPairs = data.map((item) => [
+    item.employeeId,
+    item.workplaceId || -1,
+  ]);
+
+  // Generate the delete query to remove rows that are not in validPairs
+  let deleteQuery = `
+    DELETE FROM attendance 
+    WHERE date = ? 
+    AND (employee_id, workplace_id) NOT IN (?);
+  `;
+
+  // Prepare the query parameters for the delete operation
+  const deleteQueryParams = validPairs
+    .map((pair) => `(${pair[0]}, ${pair[1]})`)
+    .join(", ");
+
+  // Only perform the deletion if there are valid pairs to check against
+  if (validPairs.length === 0) {
+    return res.status(400).send("No valid attendance data provided.");
+  }
+
+  const deletePromise = new Promise((resolve, reject) => {
+    // Execute the delete query with the correctly formatted parameters
+    const query = `DELETE FROM attendance WHERE date = ? AND (employee_id, workplace_id) NOT IN (${deleteQueryParams})`;
+    db.query(query, [date], (err) => {
+      if (err) {
+        console.error("MySQL Delete Error: ", err);
+        return reject("Delete error");
+      }
+      resolve();
+    });
+  });
+
   const updateQueries = data.map((item) => {
     const { employeeId, wage, status, workplaceId } = item;
 
     return new Promise((resolve, reject) => {
-      // Check if a row with the same employeeId, date, and workplaceId already exists
+      // Check if the record already exists
       const checkQuery = `
         SELECT * FROM attendance 
         WHERE employee_id = ? AND date = ? AND workplace_id = ?;
       `;
-
       const checkParams = [employeeId, date, workplaceId || -1];
 
       db.query(checkQuery, checkParams, (err, results) => {
@@ -237,7 +271,6 @@ app.post("/saveWages", (req, res) => {
             SET wage = ?, status = ? 
             WHERE employee_id = ? AND date = ? AND workplace_id = ?;
           `;
-
           const updateParams = [
             wage,
             status,
@@ -259,7 +292,6 @@ app.post("/saveWages", (req, res) => {
             INSERT INTO attendance (employee_id, date, status, wage, workplace_id) 
             VALUES (?, ?, ?, ?, ?);
           `;
-
           const insertParams = [
             employeeId,
             date,
@@ -280,7 +312,8 @@ app.post("/saveWages", (req, res) => {
     });
   });
 
-  Promise.all(updateQueries)
+  // Wait for both update and delete operations
+  Promise.all([...updateQueries, deletePromise])
     .then(() => {
       res.status(200).send("Attendance saved successfully.");
     })
