@@ -632,7 +632,7 @@ app.post("/generate-summary", (req, res) => {
       SELECT DISTINCT(employees.employee_id), employees.name, employees.basic_wage
       FROM employees
       JOIN attendance ON employees.employee_id = attendance.employee_id
-      WHERE attendance.workplace_id = ? 
+      WHERE attendance.workplace_id = ?  AND MONTH(attendance.date)= ? AND YEAR(attendance.date)= ?
     `;
   }
 
@@ -647,7 +647,7 @@ app.post("/generate-summary", (req, res) => {
       : "All Workplaces";
 
     // Now query the employees, filtered by the selected workplace_id
-    db.query(employeesQuery, [workplace], (err, employees) => {
+    db.query(employeesQuery, [workplace, month, year], (err, employees) => {
       if (err) return res.status(500).send(err);
 
       if (employees.length === 0)
