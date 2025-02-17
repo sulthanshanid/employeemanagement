@@ -134,6 +134,7 @@
         <thead>
           <tr>
             <th>Date</th>
+            <th>Workplace</th>
             <th>Status</th>
             <th>Basic Wage</th>
             <th>Overtime</th>
@@ -144,6 +145,7 @@
           <% detailedAttendance.forEach(record => { %>
           <tr>
             <td><%= new Date(record.date).toLocaleDateString() %></td>
+            <td><%= record.workplace_name %></td>
             <td><%= record.status %></td>
             <td>
               <%= record.status === 'Absent' ? '0.00' : (Number(record.wage) >
@@ -160,7 +162,9 @@
               Number(record.overtime)) : (Number(record.basic_wage) +
               Number(record.overtime)) ).toFixed(2) %>
             </td>
+            
           </tr>
+
           <% }); %>
         </tbody>
       </table>

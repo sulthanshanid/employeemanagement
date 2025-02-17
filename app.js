@@ -416,9 +416,14 @@ app.post("/generate-salary", (req, res) => {
 
   // Query for detailed attendance, including workplace ID
   const attendanceQuery = `
-    SELECT e.basic_wage,a.date, a.wage, a.status, a.workplace_id
-    FROM attendance a ,employees e 
-    WHERE e.employee_id=a.employee_id  and a.employee_id = ? AND MONTH(a.date) = ? AND YEAR(a.date) = ?`;
+    SELECT e.basic_wage, a.date, a.wage, a.status, a.workplace_id, w.workplace_name
+FROM attendance a
+JOIN employees e ON e.employee_id = a.employee_id
+LEFT JOIN workplaces w ON w.workplace_id = a.workplace_id
+WHERE a.employee_id = ? 
+  AND MONTH(a.date) = ? 
+  AND YEAR(a.date) = ?
+`;
 
   // Query for total salary calculation
   const salaryQuery = `
