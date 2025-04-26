@@ -629,7 +629,7 @@ app.post("/generate-summary", (req, res) => {
     // Query to get all employees and their basic wages, no workplace filter
     employeesQuery = `
       SELECT DISTINCT(employees.employee_id), employees.name, employees.basic_wage
-      FROM employees
+      FROM employees where employees.status="Working"
     `;
   } else {
     // Query to get all employees with their basic wages, filtered by workplace_id
@@ -637,7 +637,7 @@ app.post("/generate-summary", (req, res) => {
       SELECT DISTINCT(employees.employee_id), employees.name, employees.basic_wage
       FROM employees
       JOIN attendance ON employees.employee_id = attendance.employee_id
-      WHERE attendance.workplace_id = ?  AND MONTH(attendance.date)= ? AND YEAR(attendance.date)= ?
+      WHERE attendance.workplace_id = ?  AND MONTH(attendance.date)= ? AND YEAR(attendance.date)= ? and employees.status="Working"
     `;
   }
 
