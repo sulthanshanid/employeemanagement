@@ -349,24 +349,33 @@ app.post("/saveWages", (req, res) => {
 });
 
 app.get("/loan", (req, res) => {
-  // Fetch employees for the dropdown list and loans to display in the table
-  db.query("SELECT employee_id, name FROM employees", (err, employees) => {
-    if (err) {
-      return res.status(500).send("Error fetching employees.");
-    }
+  const selectedMonth = req.query.month;
+  const selectedYear = req.query.year;
 
-    // Fetch all loans from the database
-    db.query(
-      "SELECT loans.loan_id, employees.name, loans.loan_amount, loans.loan_date FROM loans INNER JOIN employees ON loans.employee_id = employees.employee_id",
-      (err, loans) => {
-        if (err) {
-          return res.status(500).send("Error fetching loans.");
-        }
-        // Render loan page with employee list and loans
-        res.render("loanForm", { employees, loans });
+  db.query(
+    "SELECT employee_id, name FROM employees",
+    (err, employees) => {
+      if (err) return res.status(500).send("Error fetching employees.");
+
+      let query = `
+      SELECT loans.loan_id, employees.name, loans.loan_amount, loans.loan_date 
+      FROM loans 
+      INNER JOIN employees ON loans.employee_id = employees.employee_id
+    `;
+
+      const params = [];
+
+      if (selectedMonth && selectedYear) {
+        query += " WHERE MONTH(loan_date) = ? AND YEAR(loan_date) = ?";
+        params.push(selectedMonth, selectedYear);
       }
-    );
-  });
+
+      db.query(query, params, (err, loans) => {
+        if (err) return res.status(500).send("Error fetching loans.");
+        res.render("loanForm", { loans, employees, selectedMonth, selectedYear });
+      });
+    }
+  );
 });
 
 app.post("/loan", (req, res) => {
@@ -817,26 +826,32 @@ app.get("/ramin", (req, res) => {
 });
 // GET Route: Display deduction form
 app.get("/deduction", (req, res) => {
-  // Fetch all employees and their deductions
-  const getEmployeesQuery = "SELECT employee_id, name FROM employees";
-  const getAllDeductionsQuery =
-    "SELECT d.deduction_id, d.employee_id, d.date, d.amount, d.remark, e.name FROM Deduction d JOIN employees e ON d.employee_id = e.employee_id ORDER BY d.date DESC";
+  const selectedMonth = req.query.month;
+  const selectedYear = req.query.year;
 
-  db.query(getEmployeesQuery, (err, employees) => {
-    if (err) {
-      console.error("Error fetching employees:", err);
-      return res.status(500).send("Database error");
+  db.query("SELECT employee_id, name FROM employees", (err, employees) => {
+    if (err) return res.status(500).send("Error fetching employees.");
+
+    let query = `
+      SELECT deduction.*, employees.name 
+      FROM deduction
+      INNER JOIN employees ON deduction.employee_id = employees.employee_id
+    `;
+
+    const params = [];
+
+    if (selectedMonth && selectedYear) {
+      query += " WHERE MONTH(date) = ? AND YEAR(date) = ?";
+      params.push(selectedMonth, selectedYear);
     }
 
-    db.query(getAllDeductionsQuery, (err, deductions) => {
-      if (err) {
-        console.error("Error fetching deductions:", err);
-        return res.status(500).send("Error fetching deductions");
-      }
+    db.query(query, params, (err, deductions) => {
+      if (err) return res.status(500).send(err);
       res.render("deductionForm", {
-        employees,
         deductions,
-        selectedEmployeeId: null,
+        employees,
+        selectedMonth,
+        selectedYear,
       });
     });
   });

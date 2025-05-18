@@ -54,7 +54,7 @@
     <select name="employee_id" id="employee_id" required>
       <option value="" disabled selected>Select an employee</option>
       <% employees.forEach((employee) => { %>
-        <option value="<%= employee.employee_id %>" <% if(employee.employee_id == selectedEmployeeId) { %>selected<% } %>><%= employee.name %></option>
+        <option value="<%= employee.employee_id %>" ><%= employee.name %></option>
       <% }) %>
     </select>
 
@@ -69,6 +69,23 @@
 
     <button type="submit">Submit Deduction</button>
   </form>
+   <form action="/deduction" method="GET">
+  <label for="month">Month:</label>
+  <select name="month" id="month" required>
+    <% for (let m = 1; m <= 12; m++) { %>
+      <option value="<%= m %>" <%= m == selectedMonth ? 'selected' : '' %>><%= m %></option>
+    <% } %>
+  </select>
+
+  <label for="year">Year:</label>
+  <select name="year" id="year" required>
+    <% for (let y = 2023; y <= new Date().getFullYear(); y++) { %>
+      <option value="<%= y %>" <%= y == selectedYear ? 'selected' : '' %>><%= y %></option>
+    <% } %>
+  </select>
+
+  <button type="submit">Show Records</button>
+</form>
 
   <h2>Existing Deductions</h2>
   <table class="deductions-table">

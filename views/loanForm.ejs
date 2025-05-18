@@ -136,6 +136,27 @@
       <div id="loading" class="loading">
         <span>Loading...</span>
       </div>
+      <form action="/loan" method="GET" class="form-inline mb-4">
+  <div class="form-group mr-2">
+    <label for="month" class="mr-2">Month:</label>
+    <select name="month" id="month" class="form-control">
+      <% for(let m = 1; m <= 12; m++) { %>
+        <option value="<%= m %>" <%= m == selectedMonth ? 'selected' : '' %>><%= m %></option>
+      <% } %>
+    </select>
+  </div>
+
+  <div class="form-group mr-2">
+    <label for="year" class="mr-2">Year:</label>
+    <select name="year" id="year" class="form-control">
+      <% for(let y = 2023; y <= new Date().getFullYear(); y++) { %>
+        <option value="<%= y %>" <%= y == selectedYear ? 'selected' : '' %>><%= y %></option>
+      <% } %>
+    </select>
+  </div>
+
+  <button type="submit" class="button">Filter</button>
+</form>
 
       <!-- Table to display existing loans -->
       <h3>Existing Loans</h3>
