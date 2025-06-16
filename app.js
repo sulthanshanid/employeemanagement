@@ -2,9 +2,10 @@ const express = require("express");
 const path = require("path");
 const mysql = require("mysql2");
 const bodyParser = require("body-parser");
-const moment = require("moment");
+
 const app = express();
 const PORT = 3000;
+const moment = require("moment-timezone");
 
 // MySQL database connection
 const db = mysql.createConnection({
@@ -833,7 +834,12 @@ app.get("/stats", (req, res) => {
 });
 app.get("/stats/today", (req, res) => {
   const workplaceId = req.query.workplace;
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleString("en-CA", {
+    timeZone: "Asia/Dubai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
 
   // Check if attendance was recorded today
   const checkAttendanceQuery = `
@@ -930,8 +936,11 @@ app.get("/stats/today", (req, res) => {
 app.get("/stats/weekly", (req, res) => {
   const workplaceId = req.query.workplace;
 
+  // make sure moment-timezone is used
+
   const last7Days = Array.from({ length: 7 }).map((_, i) =>
     moment()
+      .tz("Asia/Dubai") // Force UAE timezone
       .subtract(6 - i, "days")
       .format("YYYY-MM-DD")
   );
