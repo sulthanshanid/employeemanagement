@@ -2,7 +2,7 @@ const express = require("express");
 const path = require("path");
 const mysql = require("mysql2");
 const bodyParser = require("body-parser");
-
+const moment = require("moment");
 const app = express();
 const PORT = 3000;
 
@@ -352,30 +352,27 @@ app.get("/loan", (req, res) => {
   const selectedMonth = req.query.month;
   const selectedYear = req.query.year;
 
-  db.query(
-    "SELECT employee_id, name FROM employees",
-    (err, employees) => {
-      if (err) return res.status(500).send("Error fetching employees.");
+  db.query("SELECT employee_id, name FROM employees", (err, employees) => {
+    if (err) return res.status(500).send("Error fetching employees.");
 
-      let query = `
+    let query = `
       SELECT loans.loan_id, employees.name, loans.loan_amount, loans.loan_date 
       FROM loans 
       INNER JOIN employees ON loans.employee_id = employees.employee_id
     `;
 
-      const params = [];
+    const params = [];
 
-      if (selectedMonth && selectedYear) {
-        query += " WHERE MONTH(loan_date) = ? AND YEAR(loan_date) = ?";
-        params.push(selectedMonth, selectedYear);
-      }
-
-      db.query(query, params, (err, loans) => {
-        if (err) return res.status(500).send("Error fetching loans.");
-        res.render("loanForm", { loans, employees, selectedMonth, selectedYear });
-      });
+    if (selectedMonth && selectedYear) {
+      query += " WHERE MONTH(loan_date) = ? AND YEAR(loan_date) = ?";
+      params.push(selectedMonth, selectedYear);
     }
-  );
+
+    db.query(query, params, (err, loans) => {
+      if (err) return res.status(500).send("Error fetching loans.");
+      res.render("loanForm", { loans, employees, selectedMonth, selectedYear });
+    });
+  });
 });
 
 app.post("/loan", (req, res) => {
@@ -823,6 +820,157 @@ app.get("/generate-summary", (req, res) => {
 // Home page route
 app.get("/ramin", (req, res) => {
   res.render("index"); // Renders the index.ejs file
+});
+app.get("/stats", (req, res) => {
+  const getWorkplacesQuery = "SELECT * FROM workplaces";
+
+  db.query(getWorkplacesQuery, (err, workplaces) => {
+    if (err) {
+      return res.status(500).send("Error fetching workplaces.");
+    }
+    res.render("stats", { workplaces });
+  });
+});
+app.get("/stats/today", (req, res) => {
+  const workplaceId = req.query.workplace;
+  const today = new Date().toISOString().split("T")[0];
+
+  // Check if attendance was recorded today
+  const checkAttendanceQuery = `
+    SELECT COUNT(*) AS count 
+    FROM attendance 
+    WHERE date = ? 
+  `;
+
+  db.query(checkAttendanceQuery, [today], (err, result) => {
+    if (err) return res.status(500).json({ error: err });
+
+    const attendanceCount = result[0].count;
+
+    if (attendanceCount === 0) {
+      // No attendance taken today for this workplace
+      return res.json({
+        present: 0,
+        absent: 0,
+        total: 0,
+        presentEmployees: [],
+        absentEmployees: [],
+        message: "Attendance not recorded for today.",
+      });
+    }
+
+    // Continue if attendance taken
+    const totalQuery = ` 
+  SELECT 
+    e.employee_id, 
+    e.name, 
+    e.basic_wage AS base_wage,
+    a.wage AS wage,
+    CASE 
+      WHEN a.wage > e.basic_wage THEN 1 
+      ELSE 0 
+    END AS overtime
+  FROM 
+    employees e
+  JOIN 
+    attendance a ON e.employee_id = a.employee_id
+  WHERE 
+    e.status = "Working"
+    AND a.date = ?
+  GROUP BY 
+    e.employee_id, e.name, e.basic_wage, a.wage
+`;
+
+    const presentQuery = `
+  SELECT 
+    e.employee_id, 
+    e.name, 
+    e.basic_wage AS base_wage,
+    a.wage AS wage,
+    w.workplace_name,
+    CASE 
+      WHEN a.wage > e.basic_wage THEN 1 
+      ELSE 0 
+    END AS overtime
+  FROM 
+    employees e
+  JOIN 
+    attendance a ON a.employee_id = e.employee_id
+  JOIN 
+    workplaces w ON a.workplace_id = w.workplace_id
+  WHERE 
+    a.date = ?
+    AND e.status = "Working"
+    AND a.status = "Present"
+`;
+
+    db.query(totalQuery, [today], (err, allEmployees) => {
+      if (err) return res.status(500).json({ error: err });
+      console.log("All Employees:", allEmployees);
+      db.query(presentQuery, [today], (err, presentEmployees) => {
+        if (err) return res.status(500).json({ error: err });
+
+        const presentIds = presentEmployees.map((e) => e.employee_id);
+        const absentEmployees = allEmployees.filter(
+          (e) => !presentIds.includes(e.employee_id)
+        );
+
+        res.json({
+          present: presentEmployees.length,
+          absent: absentEmployees.length,
+          total: allEmployees.length,
+          presentEmployees,
+          absentEmployees,
+        });
+      });
+    });
+  });
+});
+
+app.get("/stats/weekly", (req, res) => {
+  const workplaceId = req.query.workplace;
+
+  const last7Days = Array.from({ length: 7 }).map((_, i) =>
+    moment()
+      .subtract(6 - i, "days")
+      .format("YYYY-MM-DD")
+  );
+
+  const query = `
+    SELECT 
+      DATE(a.date) AS date,
+      SUM(a.status = 'Present') AS present,
+      SUM(a.status = 'Absent') AS absent
+    FROM attendance a
+    JOIN employees e ON a.employee_id = e.employee_id
+    WHERE 
+       a.date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+      AND e.status = 'Working'
+    GROUP BY DATE(a.date)
+  `;
+
+  db.query(query, (err, rows) => {
+    if (err) return res.status(500).json({ error: err });
+
+    const dataMap = {};
+    rows.forEach((row) => {
+      const date = moment(row.date).format("YYYY-MM-DD");
+      dataMap[date] = {
+        date,
+        present: parseInt(row.present || 0),
+        absent: parseInt(row.absent || 0),
+      };
+    });
+
+    const finalData = last7Days
+      .filter((date) => dataMap[date])
+      .map((date) => ({
+        ...dataMap[date],
+        total: dataMap[date].present + dataMap[date].absent,
+      }));
+
+    res.json(finalData);
+  });
 });
 // GET Route: Display deduction form
 app.get("/deduction", (req, res) => {
