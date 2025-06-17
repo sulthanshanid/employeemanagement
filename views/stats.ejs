@@ -295,8 +295,8 @@
 
           const baseWage = emp.base_wage || 0;
           const wage = emp.wage || 0;
-          const overtime = emp.overtime && wage > baseWage;
-          const overtimeWage = overtime ? wage - baseWage : 0;
+          const overtime = emp.overtime && Number(wage) > Number(baseWage);
+          const overtimeWage = overtime ? Number(wage) - Number(baseWage) : 0;
 
           totalBaseWage += Number(baseWage);
           totalWage += Number(wage);
